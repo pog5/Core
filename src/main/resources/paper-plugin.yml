@@ -1,0 +1,10 @@
+name: Core
+version: '${project.version}'
+main: org.core.Core
+authors: [ pixelNightly ]
+contributors: [ ChatGPT ]
+description: Main Plugin
+website: pog5.me
+softdepend: [PlaceHolderAPI]
+load: STARTUP
+api-version: '1.20'
