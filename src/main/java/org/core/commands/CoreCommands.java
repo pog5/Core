@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -136,8 +137,8 @@ public class CoreCommands {
     }
 
     // Freeze
-    @ProxiedBy("unfreeze|ss")
-    @CommandMethod("freeze <player>")
+    @ProxiedBy("unfreeze")
+    @CommandMethod("freeze|ss <player>")
     @CommandDescription("Freeze a player")
     @CommandPermission("core.freeze")
     public void freeze(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player) {
@@ -165,6 +166,8 @@ public class CoreCommands {
         if (player != null) {
             if (sender.hasPermission("core.gamemode.others")) {
                 player.setGameMode(gamemode);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + player.getName() + "'s gamemode was set to " + gamemode.name().toUpperCase()));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -173,6 +176,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.setGameMode(gamemode);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + "Your gamemode was set to " + gamemode.name().toUpperCase()));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -188,6 +193,8 @@ public class CoreCommands {
         if (player != null) {
             if (sender.hasPermission("core.gamemode.others")) {
                 player.setGameMode(GameMode.CREATIVE);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + player.getName() + "'s gamemode was set to CREATIVE"));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -196,6 +203,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.setGameMode(GameMode.CREATIVE);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + "Your gamemode was set to CREATIVE"));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -211,6 +220,8 @@ public class CoreCommands {
         if (player != null) {
             if (sender.hasPermission("core.gamemode.others")) {
                 player.setGameMode(GameMode.SURVIVAL);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + player.getName() + "'s gamemode was set to SURVIVAL"));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -219,6 +230,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.setGameMode(GameMode.SURVIVAL);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + "Your gamemode was set to SURVIVAL"));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -234,6 +247,8 @@ public class CoreCommands {
         if (player != null) {
             if (sender.hasPermission("core.gamemode.others")) {
                 player.setGameMode(GameMode.SPECTATOR);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + player.getName() + "'s gamemode was set to SPECTATOR"));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -242,6 +257,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.setGameMode(GameMode.SPECTATOR);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + "Your gamemode was set to SPECTATOR"));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -257,6 +274,8 @@ public class CoreCommands {
         if (player != null) {
             if (sender.hasPermission("core.gamemode.others")) {
                 player.setGameMode(GameMode.ADVENTURE);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + player.getName() + "'s gamemode was set to ADVENTURE"));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -265,6 +284,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.setGameMode(GameMode.ADVENTURE);
+                String gamemodestr = org.core.Core.getConfigValue("messages.gamemode");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(gamemodestr + "Your gamemode was set to ADVENTURE"));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -359,13 +380,15 @@ public class CoreCommands {
     // Teleport and Teleport Here
 
     @ProxiedBy("tp")
-    @CommandMethod("teleport <player> [player]")
+    @CommandMethod("teleport <player> [target]")
     @CommandDescription("Teleport yourself or another player to another player")
     @CommandPermission("core.teleport")
-    public void teleport(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @Argument("player") Player player2) {
-        if (player2 != null) {
+    public void teleport(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @Argument("target") Player target) {
+        if (target != null) {
             if (sender.hasPermission("core.teleport.others")) {
-                player.teleport(player2);
+                player.teleport(target);
+                String teleported = org.core.Core.getConfigValue("messages.teleported");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(teleported + player.getName() + " to " + target.getName()));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -374,6 +397,8 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
                 p.teleport(player);
+                String teleported = org.core.Core.getConfigValue("messages.teleported");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(teleported + " to " + player.getName()));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -381,17 +406,41 @@ public class CoreCommands {
         }
     }
 
-    @ProxiedBy("tphere|tph")
-    @CommandMethod("teleporthere <player>")
+    @ProxiedBy("tph")
+    @CommandMethod("tphere <player>")
     @CommandDescription("Teleport another player to yourself")
     @CommandPermission("core.teleporthere")
     public void teleporthere(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player) {
         if (sender instanceof Player) {
             Player p = (Player) sender;
             player.teleport(p);
+            String teleported = org.core.Core.getConfigValue("messages.teleported");
+            player.sendMessage(MiniMessage.miniMessage().deserialize(teleported + player.getName() + " to you."));
         } else {
             String invalid = org.core.Core.getConfigValue("messages.invalid");
             sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+        }
+    }
+
+    @ProxiedBy("tpcoords")
+    @CommandMethod("teleportcoords <x> <y> <z> [world]")
+    @CommandDescription("Teleport yourself to coordinates")
+    @CommandPermission("core.teleportcoords")
+    public void teleportcoords(final @NotNull CommandSender sender, final @Argument("x") int x, final @Argument("y") int y, final @Argument("z") int z, final @Argument("world") World world) {
+        if (!(sender instanceof Player)) {
+            String invalid = org.core.Core.getConfigValue("messages.invalid");
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+            return;
+        }
+        Player p = (Player) sender;
+        if (world == null) {
+            p.teleport(new Location(p.getWorld(), x, y, z));
+            String teleported = org.core.Core.getConfigValue("messages.teleported");
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(teleported + " to " + x + ", " + y + ", " + z));
+        } else {
+            p.teleport(new Location(world, x, y, z));
+            String teleported = org.core.Core.getConfigValue("messages.teleported");
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(teleported + " to " + x + ", " + y + ", " + z + " in " + world.getName().toUpperCase()));
         }
     }
 
@@ -401,14 +450,15 @@ public class CoreCommands {
     @CommandDescription("Get the server's performance status")
     @CommandPermission("core.lag")
     public void lag(final @NotNull CommandSender sender) {
+        DecimalFormat numberFormat = new DecimalFormat("#.00");
         String lag = org.core.Core.getConfigValue("messages.lag");
-        sender.sendMessage(MiniMessage.miniMessage().deserialize(lag + "TPS: " + Bukkit.getServer().getTPS()[0] + " Ping: " + ((Player) sender).getPing() + "ms" + " MSPT: " + Bukkit.getServer().getAverageTickTime() + "ms" + " RAM: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024L + "MB"));
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(lag + "TPS: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getTPS()[0])) + " | Ping: " + ((Player) sender).getPing() + "ms" + " | MSPT: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getAverageTickTime())) + "ms" + " | RAM: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024L / 1024L + "MB"));
     }
 
     // Tell
 
-    @ProxiedBy("msg|dm|w|whisper|dm|message|t")
-    @CommandMethod("tell <player> <message>")
+    @ProxiedBy("msg")
+    @CommandMethod("tell|whisper <player> <message>")
     @CommandDescription("Send a private message to a player")
     @CommandPermission("core.tell")
     public void tell(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @NotNull @Greedy @Argument("message") String message) {
