@@ -13,6 +13,7 @@ messages:
   player: "<#7287fd>Player "
   gave: "<#ea76cb>Gave "
   gamemode: "<#ea76cb>"
+  staffchat: "<#40a02b>[STAFF] "
   teleported: "<#ea76cb>Teleported"
   lag: "<gradient:#50fa7b:#8be9fd>Status: "
   ping: "<gradient:#df8e1d:#dc8a78>Ping"
