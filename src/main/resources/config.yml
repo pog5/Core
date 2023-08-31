@@ -31,4 +31,7 @@ messages:
   mutechat:
     muted: "<gradient:#ff5555:#ffb86c>Chat has been muted!"
     unmuted: "<#50fa7b>Chat has been unmuted!"
+  vanish:
+    vanished: "<#ff5555>You have vanished!"
+    unvanished: "<#50fa7b>You have unvanished!"
   restarting: "<gradient:#ff5555:#ffb86c>Server is restarting"
