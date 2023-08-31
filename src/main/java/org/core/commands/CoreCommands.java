@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.core.data.CoreData;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
@@ -17,7 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CoreCommands {
 
-    public static Map<UUID, UUID> msg = new WeakHashMap<>();
+
+
     BukkitTask task;
 
     // Alert
@@ -28,6 +30,17 @@ public class CoreCommands {
     public void alert(final @NotNull CommandSender sender, final @NotNull @Greedy @Argument("message") String message) {
         String alert = org.core.Core.getConfigValue("messages.alert");
         sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(alert + message));
+    }
+
+    // Rules
+
+    @CommandMethod("rules")
+    @CommandDescription("Get the rules")
+    @CommandPermission("core.rules")
+    public void rules(final @NotNull CommandSender sender) {
+        for (Object rules : org.core.Core.getConfigListValue("rules")) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize((String) rules));
+        }
     }
 
     // Day
@@ -78,7 +91,19 @@ public class CoreCommands {
     public void discord(final @NotNull CommandSender sender) {
         String discord = org.core.Core.getConfigValue("messages.discord");
         String discordLink = org.core.Core.getConfigValue("discord");
-        sender.sendMessage(MiniMessage.miniMessage().deserialize(discord + "<click:open_url:" + discordLink + ">discordLink"));
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(discord + "<click:open_url:" + discordLink + ">" + discordLink));
+    }
+
+    // Store
+
+    @ProxiedBy("buy")
+    @CommandMethod("store")
+    @CommandDescription("Get the store link")
+    @CommandPermission("core.store")
+    public void store(final @NotNull CommandSender sender) {
+        String store = org.core.Core.getConfigValue("messages.store");
+        String storeLink = org.core.Core.getConfigValue("store");
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(store + "<click:open_url:" + storeLink + ">" + storeLink));
     }
 
     // Feed
@@ -143,16 +168,12 @@ public class CoreCommands {
     @CommandPermission("core.freeze")
     public void freeze(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player) {
         String playerstr = org.core.Core.getConfigValue("messages.player");
-        if (player.isInvulnerable()) {
-            player.setInvulnerable(false);
-            String unfrozen = org.core.Core.getConfigValue("messages.freeze.unfrozen");
-            player.sendMessage(MiniMessage.miniMessage().deserialize(unfrozen));
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + "unfrozen!"));
+        if (CoreData.isFrozen(player)) {
+            CoreData.unfreeze(player);
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + player.getName() + " unfrozen!"));
         } else {
-            player.setInvulnerable(true);
-            String frozen = org.core.Core.getConfigValue("messages.freeze.frozen");
-            player.sendMessage(MiniMessage.miniMessage().deserialize(frozen));
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + "frozen!"));
+            CoreData.freeze(player);
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + player.getName() + " frozen!"));
         }
     }
 
@@ -426,7 +447,7 @@ public class CoreCommands {
     @CommandMethod("teleportcoords <x> <y> <z> [world]")
     @CommandDescription("Teleport yourself to coordinates")
     @CommandPermission("core.teleportcoords")
-    public void teleportcoords(final @NotNull CommandSender sender, final @Argument("x") int x, final @Argument("y") int y, final @Argument("z") int z, final @Argument("world") World world) {
+    public void teleportcoords(final @NotNull CommandSender sender, final @Argument("x") long x, final @Argument("y") long y, final @Argument("z") long z, final @Argument("world") World world) {
         if (!(sender instanceof Player)) {
             String invalid = org.core.Core.getConfigValue("messages.invalid");
             sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -434,11 +455,11 @@ public class CoreCommands {
         }
         Player p = (Player) sender;
         if (world == null) {
-            p.teleport(new Location(p.getWorld(), x, y, z));
+            p.teleportAsync(new Location(p.getWorld(), x, y, z));
             String teleported = org.core.Core.getConfigValue("messages.teleported");
             sender.sendMessage(MiniMessage.miniMessage().deserialize(teleported + " to " + x + ", " + y + ", " + z));
         } else {
-            p.teleport(new Location(world, x, y, z));
+            p.teleportAsync(new Location(world, x, y, z));
             String teleported = org.core.Core.getConfigValue("messages.teleported");
             sender.sendMessage(MiniMessage.miniMessage().deserialize(teleported + " to " + x + ", " + y + ", " + z + " in " + world.getName().toUpperCase()));
         }
@@ -452,7 +473,11 @@ public class CoreCommands {
     public void lag(final @NotNull CommandSender sender) {
         DecimalFormat numberFormat = new DecimalFormat("#.00");
         String lag = org.core.Core.getConfigValue("messages.lag");
-        sender.sendMessage(MiniMessage.miniMessage().deserialize(lag + "TPS: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getTPS()[0])) + " | Ping: " + ((Player) sender).getPing() + "ms" + " | MSPT: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getAverageTickTime())) + "ms" + " | RAM: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024L / 1024L + "MB"));
+        if (sender instanceof Player) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(lag + "TPS: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getTPS()[0])) + " | Ping: " + ((Player) sender).getPing() + "ms" + " | MSPT: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getAverageTickTime())) + "ms" + " | RAM: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024L / 1024L + "MB"));
+        } else {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(lag + "TPS: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getTPS()[0])) + " | MSPT: " + Double.parseDouble(numberFormat.format(Bukkit.getServer().getAverageTickTime())) + "ms" + " | RAM: " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1024L / 1024L + "MB"));
+        }
     }
 
     // Tell
@@ -468,8 +493,8 @@ public class CoreCommands {
         if (sender instanceof Player) {
             player.sendMessage(MiniMessage.miniMessage().deserialize(from + sender.getName() + ": <reset>" + message));
             Player p = (Player) sender;
-            msg.put(player.getUniqueId(), p.getUniqueId());
-            msg.put(p.getUniqueId(), player.getUniqueId());
+            CoreData.dms.put(player.getUniqueId(), p.getUniqueId());
+            CoreData.dms.put(p.getUniqueId(), player.getUniqueId());
         } else {
             player.sendMessage(MiniMessage.miniMessage().deserialize(from + "CONSOLE: <reset>" + message));
         }
@@ -490,13 +515,13 @@ public class CoreCommands {
         String to = org.core.Core.getConfigValue("messages.msg.to");
         String from = org.core.Core.getConfigValue("messages.msg.from");
         Player p = (Player) sender;
-        if (msg.containsKey(p.getUniqueId())) {
-            Player player = Bukkit.getPlayer(msg.get(p.getUniqueId()));
+        if (CoreData.getDms().containsKey(p.getUniqueId())) {
+            Player player = Bukkit.getPlayer(CoreData.getDms().get(p.getUniqueId()));
             if (player != null) {
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(to + player.getName() + ": <reset>" + message));
                 player.sendMessage(MiniMessage.miniMessage().deserialize(from + sender.getName() + ": <reset>" + message));
-                msg.put(player.getUniqueId(), p.getUniqueId());
-                msg.put(p.getUniqueId(), player.getUniqueId());
+                CoreData.dms.put(player.getUniqueId(), p.getUniqueId());
+                CoreData.dms.put(p.getUniqueId(), player.getUniqueId());
             } else {
                 String noreply = org.core.Core.getConfigValue("messages.noreply");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noreply));
@@ -514,7 +539,7 @@ public class CoreCommands {
     @CommandDescription("Talk to other staff")
     @CommandPermission("core.staffchat")
     public void staffchat(final @NotNull CommandSender sender, final @NotNull @Greedy @Argument("message") String message) {
-        String staffchat = org.core.Core.getConfigValue("messages.staffchat");
+        String staffchat = org.core.Core.getConfigValue("messages.staff.prefix");
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.hasPermission("core.staffchat")) {
                 p.sendMessage(MiniMessage.miniMessage().deserialize(staffchat + sender.getName() + ": <reset>" + message));
@@ -556,10 +581,15 @@ public class CoreCommands {
     public void speed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
         if (player != null) {
             if (sender.hasPermission("core.speed.others")) {
+                float speedd = String.valueOf(speed).equals("1") ? 1.0f : this.getMoveSpeed(String.valueOf(speed));
                 if (player.isFlying()) {
-                    player.setFlySpeed(speed);
+                    player.setFlySpeed(getRealMoveSpeed(speedd, true));
+                    String flyspeed = org.core.Core.getConfigValue("messages.speed.fly");
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speedd));
                 } else {
-                    player.setWalkSpeed(speed);
+                    player.setWalkSpeed(getRealMoveSpeed(speedd, false));
+                    String walkspeed = org.core.Core.getConfigValue("messages.speed.walk");
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speedd));
                 }
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
@@ -568,16 +598,47 @@ public class CoreCommands {
         } else {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
+                float speedd = String.valueOf(speed).equals("1") ? 1.0f : this.getMoveSpeed(String.valueOf(speed));
                 if (p.isFlying()) {
-                    p.setFlySpeed(speed);
+                    p.setFlySpeed(getRealMoveSpeed(speedd, true));
+                    String flyspeed = org.core.Core.getConfigValue("messages.speed.fly");
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speedd));
                 } else {
-                    p.setWalkSpeed(speed);
+                    p.setWalkSpeed(getRealMoveSpeed(speedd, false));
+                    String walkspeed = org.core.Core.getConfigValue("messages.speed.walk");
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speedd));
                 }
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
             }
         }
+    }
+
+    private float getMoveSpeed(String moveSpeed) {
+        float userSpeed = 1.0f;
+        try {
+            userSpeed = Float.parseFloat(moveSpeed);
+            if (userSpeed > 10.0f) {
+                userSpeed = 10.0f;
+            } else if (userSpeed < 1.0E-4f) {
+                userSpeed = 1.0E-4f;
+            }
+        }
+        catch (NumberFormatException numberFormatException) {
+            // empty catch block
+        }
+        return userSpeed;
+    }
+
+    private float getRealMoveSpeed(float userSpeed, boolean isFly) {
+        float defaultSpeed = isFly ? 0.1f : 0.2f;
+        float maxSpeed = 1.0f;
+        if (userSpeed < 1.0f) {
+            return defaultSpeed * userSpeed;
+        }
+        float ratio = (userSpeed - 1.0f) / 9.0f * (maxSpeed - defaultSpeed);
+        return ratio + defaultSpeed;
     }
 
     @ProxiedBy("wspeed")
@@ -587,7 +648,9 @@ public class CoreCommands {
     public void walkspeed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
         if (player != null) {
             if (sender.hasPermission("core.speed.others")) {
-                player.setWalkSpeed(speed);
+                player.setWalkSpeed(getRealMoveSpeed(speed, false));
+                String walkspeed = org.core.Core.getConfigValue("messages.speed.walk");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speed));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -595,7 +658,9 @@ public class CoreCommands {
         } else {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
-                p.setWalkSpeed(speed);
+                p.setWalkSpeed(getRealMoveSpeed(speed, false));
+                String walkspeed = org.core.Core.getConfigValue("messages.speed.walk");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speed));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -610,7 +675,9 @@ public class CoreCommands {
     public void flyspeed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
         if (player != null) {
             if (sender.hasPermission("core.speed.others")) {
-                player.setFlySpeed(speed);
+                player.setFlySpeed(getRealMoveSpeed(speed, true));
+                String flyspeed = org.core.Core.getConfigValue("messages.speed.fly");
+                player.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speed));
             } else {
                 String noperms = org.core.Core.getConfigValue("messages.noperms");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
@@ -618,7 +685,9 @@ public class CoreCommands {
         } else {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
-                p.setFlySpeed(speed);
+                p.setFlySpeed(getRealMoveSpeed(speed, true));
+                String flyspeed = org.core.Core.getConfigValue("messages.speed.fly");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speed));
             } else {
                 String invalid = org.core.Core.getConfigValue("messages.invalid");
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
@@ -629,25 +698,35 @@ public class CoreCommands {
     // Vanish
 
     @ProxiedBy("unvanish")
-    @CommandMethod("vanish")
-    @CommandDescription("Un/Vanish yourself")
+    @CommandMethod("vanish [player]")
+    @CommandDescription("Un/Vanish yourself or another player")
     @CommandPermission("core.vanish")
-    public void vanish(final @NotNull CommandSender sender) {
-        if (sender instanceof Player) {
-            Player p = (Player) sender;
-            if (p.isInvisible()) {
-                p.setInvisible(false);
-                String unvanished = org.core.Core.getConfigValue("messages.vanish.unvanished");
-                p.sendMessage(MiniMessage.miniMessage().deserialize(unvanished));
+    public void vanish(final @NotNull CommandSender sender, final @Argument("player") Player player) {
+        if (player != null) {
+            if (sender.hasPermission("core.vanish.others")) {
+                if (CoreData.getVanishedPlayers().contains(player.getUniqueId())) {
+                    CoreData.unvanish(player);
+                } else {
+                    CoreData.vanish(player);
+                }
             } else {
-                p.setInvisible(true);
-                String vanished = org.core.Core.getConfigValue("messages.vanish.vanished");
-                p.sendMessage(MiniMessage.miniMessage().deserialize(vanished));
+                String noperms = org.core.Core.getConfigValue("messages.noperms");
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
             }
         } else {
-            String invalid = org.core.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+            if (sender instanceof Player) {
+                Player p = (Player) sender;
+                if (CoreData.getVanishedPlayers().contains(p.getUniqueId())) {
+                    CoreData.unvanish(p);
+                } else {
+                    CoreData.vanish(p);
+                }
+            } else {
+                String invalid = org.core.Core.getConfigValue("messages.invalid");
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+            }
         }
+
     }
 
     // Reboot

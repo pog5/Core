@@ -5,6 +5,6 @@ authors: [ pixelNightly ]
 contributors: [ ChatGPT ]
 description: Main Plugin
 website: pog5.me
-softdepend: [PlaceHolderAPI]
+softdepend: [PlaceHolderAPI, ProtocolLib]
 load: STARTUP
 api-version: '1.20'

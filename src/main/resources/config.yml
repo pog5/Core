@@ -1,9 +1,24 @@
-mode: FFA
-discord: "https://discord.gg/"
+# Available modules: Core, FFA
+modules:
+  - "Core"
+#  - FFA
+discord: "https://discord.prismarine.xyz/"
+store: "https://store.prismarine.xyz/"
+rules:
+  - "<red>Rules:"
+  - "<gray>1. <gradient:red:gold>Respect all players"
+  - "<gray>2. <gradient:red:gold>No Cheating/Hacking"
+  - "<gray>3. <gradient:red:gold>No Advertising"
+  - "<gray>4. <gradient:red:gold>No excessive spamming"
+  - "<gray>5. <gradient:red:gold>No sharing personal information"
+
 messages:
+  quit: "<gradient:#ff5555:#ffb86c>←"
+  join: "<gradient:#50fa7b:#8be9fd>➜"
   noperms: "<gradient:#ff5555:#ffb86c>No permission!</gradient>"
   invalid: "<gradient:#ff5555:#ffb86c>Missing/Invalid arguments or not supported!</gradient>"
-  discord: "<gradient:#50fa7b:#8be9fd>Join our discord at "
+  discord: "<gradient:#50fa7b:#8be9fd>Discord: "
+  store: "<gradient:#df8e1d:#ea76cb>Store: "
   alert: "<gradient:#bd93f9:#ff79c6>Alert</gradient> <gray>»</gray> "
   day: "<#f1fa8c>Set the time to Day"
   night: "<#6272a4>Set the time to Night"
@@ -13,7 +28,8 @@ messages:
   player: "<#7287fd>Player "
   gave: "<#ea76cb>Gave "
   gamemode: "<#ea76cb>"
-  staffchat: "<#40a02b>[STAFF] "
+  staff:
+    prefix: "<#40a02b>[STAFF] "
   teleported: "<#ea76cb>Teleported"
   lag: "<gradient:#50fa7b:#8be9fd>Status: "
   ping: "<gradient:#df8e1d:#dc8a78>Ping"

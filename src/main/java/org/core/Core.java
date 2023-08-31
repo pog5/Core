@@ -12,9 +12,7 @@ import cloud.commandframework.meta.CommandMeta;
 import cloud.commandframework.minecraft.extras.MinecraftExceptionHandler;
 import cloud.commandframework.paper.PaperCommandManager;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
-import cloud.commandframework.minecraft.extras.MinecraftHelp;
 import cloud.commandframework.annotations.AnnotationParser;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -22,10 +20,12 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.core.commands.CoreCommands;
+import org.core.listeners.CoreListeners;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -34,7 +34,7 @@ import static net.kyori.adventure.text.Component.text;
 public final class Core extends JavaPlugin {
     private AnnotationParser<CommandSender> annotationParser;
     public File configFile = new File(this.getDataFolder(), "config.yml");
-    public FileConfiguration config = this.getConfig();
+    public FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
     private static Core plugin;
     public static Path plugindir;
     public static boolean muteChat = false;
@@ -111,16 +111,29 @@ public final class Core extends JavaPlugin {
                 ).apply(manager, bukkitAudiences::sender);
 
         // End Cloud Command API
-        String mode = getConfigValue("mode");
-        registerCommands();
+
+        for (Object modules : org.core.Core.getConfigListValue("modules")) {
+            if (modules.toString().equalsIgnoreCase("core")) {
+                setupCore();
+            }
+        }
     }
 
-    private void registerCommands() {
+    private void setupCore() {
         this.annotationParser.parse(new CoreCommands());
+        this.getServer().getPluginManager().registerEvents(new CoreListeners(), this);
     }
     public static String getConfigValue(@NotNull String value) {
         YamlConfiguration c = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
-        return c.get(value).toString();
+        try {
+            return c.get(value).toString();
+        } catch (NullPointerException e) {
+            return "Error! Value " + value + " not found in config or was empty! | ";
+        }
+    }
+    public static List getConfigListValue(@NotNull String value) {
+        YamlConfiguration c = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
+        return c.getList(value);
     }
 
     @Override
