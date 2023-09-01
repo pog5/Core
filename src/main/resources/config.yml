@@ -12,10 +12,10 @@ rules:
   - "<gray>4. <gradient:red:gold>No excessive spamming"
   - "<gray>5. <gradient:red:gold>No sharing personal information"
 welcome:
-  - " "
+  - "<reset>"
   - "   <#89b4fa>Welcome to <#50fa7b>Prismarine Network<#89b4fa>!"
   - "   <#89b4fa>Make sure to read the rules with <#50fa7b>/rules<#89b4fa>!"
-  - " "
+  - "<reset>"
 chatfilter:
   - "nigger"
   - "faggot"

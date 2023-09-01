@@ -66,8 +66,8 @@ public class CoreListeners implements Listener {
         String join = org.core.Core.getConfigValue("messages.join");
         event.joinMessage(MiniMessage.miniMessage().deserialize(join + event.getPlayer().getName()));
         // Welcome Message
-        for (Object line : org.core.Core.getConfigListValue("messages.welcome")) {
-            event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize((String) line));
+        for (Object welcome : org.core.Core.getConfigListValue("welcome")) {
+            event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize((String) welcome));
         }
         // Vanish
         Set<UUID> vanished = getVanishedPlayers();
