@@ -11,6 +11,8 @@ import cloud.commandframework.extra.confirmation.CommandConfirmationManager;
 import cloud.commandframework.meta.CommandMeta;
 import cloud.commandframework.minecraft.extras.MinecraftExceptionHandler;
 import cloud.commandframework.paper.PaperCommandManager;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import cloud.commandframework.annotations.AnnotationParser;
 import org.bukkit.Bukkit;
@@ -18,12 +20,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.core.commands.CoreCommands;
 import org.core.listeners.CoreListeners;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -33,11 +37,36 @@ import static net.kyori.adventure.text.Component.text;
 
 public final class Core extends JavaPlugin {
     private AnnotationParser<CommandSender> annotationParser;
+    public static ProtocolManager protocolManager;
     public File configFile = new File(this.getDataFolder(), "config.yml");
     public FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
     private static Core plugin;
     public static Path plugindir;
+    private static File dataFile;
+    private static FileConfiguration data;
+    public static FileConfiguration getData() {
+        return data;
+    }
+    public void createData() {
+        dataFile = new File(this.getDataFolder(), "player.yml");
+        if (!dataFile.exists()) {
+            this.saveResource("player.yml", false);
+        }
+        data = YamlConfiguration.loadConfiguration(dataFile);
+    }
+
+    public static void saveData() {
+        try {
+            data.save(dataFile);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     public static boolean muteChat = false;
+    public static ProtocolManager getProtocolManager() {
+        return protocolManager;
+    }
     public static Core getPlugin() {return plugin;}
 
     @Override
@@ -53,6 +82,9 @@ public final class Core extends JavaPlugin {
         this.saveDefaultConfig();
         this.config.options().copyDefaults(true);
         this.reloadConfig();
+        this.createData();
+        PluginManager pm = this.getServer().getPluginManager();
+        protocolManager = ProtocolLibrary.getProtocolManager();
 
         // Setup Cloud Commands API
 
@@ -114,15 +146,12 @@ public final class Core extends JavaPlugin {
 
         for (Object modules : org.core.Core.getConfigListValue("modules")) {
             if (modules.toString().equalsIgnoreCase("core")) {
-                setupCore();
+                this.annotationParser.parse(new CoreCommands());
+                pm.registerEvents(new CoreListeners(), this);
             }
         }
     }
 
-    private void setupCore() {
-        this.annotationParser.parse(new CoreCommands());
-        this.getServer().getPluginManager().registerEvents(new CoreListeners(), this);
-    }
     public static String getConfigValue(@NotNull String value) {
         YamlConfiguration c = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
         try {
@@ -132,8 +161,7 @@ public final class Core extends JavaPlugin {
         }
     }
     public static List getConfigListValue(@NotNull String value) {
-        YamlConfiguration c = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
-        return c.getList(value);
+        return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml")).getList(value);
     }
 
     @Override

@@ -3,6 +3,7 @@ package org.core.commands;
 import cloud.commandframework.annotations.*;
 import cloud.commandframework.annotations.specifier.Greedy;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -13,7 +14,7 @@ import org.core.data.CoreData;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
-import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CoreCommands {
@@ -161,19 +162,53 @@ public class CoreCommands {
         }
     }
 
+    // God
+
+    @CommandMethod("god [player]")
+    @CommandDescription("Toggle invulnerability for yourself or another player")
+    @CommandPermission("core.god")
+    public void god(final @NotNull CommandSender sender, final @Argument("player") Player player) {
+        String god = org.core.Core.getConfigValue("messages.god");
+        if (player != null) {
+            if (sender.hasPermission("core.god.others")) {
+                if (player.isInvulnerable()) {
+                    player.setInvulnerable(false);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(god + "disabled!"));
+                } else {
+                    player.setInvulnerable(true);
+                    player.sendMessage(MiniMessage.miniMessage().deserialize(god + "enabled!"));
+                }
+            } else {
+                String noperms = org.core.Core.getConfigValue("messages.noperms");
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
+            }
+        } else {
+            if (sender instanceof Player) {
+                Player p = (Player) sender;
+                if (p.isInvulnerable()) {
+                    p.setInvulnerable(false);
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(god + "disabled!"));
+                } else {
+                    p.setInvulnerable(true);
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(god + "enabled!"));
+                }
+            } else {
+                String invalid = org.core.Core.getConfigValue("messages.invalid");
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+            }
+        }
+    }
+
     // Freeze
     @ProxiedBy("unfreeze")
     @CommandMethod("freeze|ss <player>")
     @CommandDescription("Freeze a player")
     @CommandPermission("core.freeze")
     public void freeze(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player) {
-        String playerstr = org.core.Core.getConfigValue("messages.player");
         if (CoreData.isFrozen(player)) {
-            CoreData.unfreeze(player);
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + player.getName() + " unfrozen!"));
+            CoreData.unfreeze(player, (Player) sender);
         } else {
-            CoreData.freeze(player);
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(playerstr + player.getName() + " frozen!"));
+            CoreData.freeze(player, (Player) sender);
         }
     }
 
@@ -365,7 +400,8 @@ public class CoreCommands {
         if (sender instanceof Player) {
             Player p = (Player) sender;
             ItemStack itemStack = new ItemStack(item);
-            if (amount > 0 && amount < 65) {
+            itemStack.setAmount(1);
+            if (amount >= 1 && amount <= 64) {
                 itemStack.setAmount(amount);
             }
             p.getInventory().addItem(itemStack);
@@ -385,12 +421,12 @@ public class CoreCommands {
     public void give(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @NotNull @Argument("item") Material item, final @Argument("amount") int amount) {
         if (sender.hasPermission("core.give.others")) {
             ItemStack itemStack = new ItemStack(item);
-            if (amount > 0 && amount < 65) {
+            itemStack.setAmount(1);
+            if (amount >= 1 && amount <= 64) {
                 itemStack.setAmount(amount);
             }
             player.getInventory().addItem(itemStack);
             String gave = org.core.Core.getConfigValue("messages.gave");
-            player.sendMessage(MiniMessage.miniMessage().deserialize(gave + " you " + itemStack.getAmount() + " of " + itemStack.getType().name()));
             sender.sendMessage(MiniMessage.miniMessage().deserialize(gave + " " + player.getName() + " " + itemStack.getAmount() + " of " + itemStack.getType().name()));
         } else {
             String noperms = org.core.Core.getConfigValue("messages.noperms");
@@ -489,14 +525,14 @@ public class CoreCommands {
     public void tell(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @NotNull @Greedy @Argument("message") String message) {
         String to = org.core.Core.getConfigValue("messages.msg.to");
         String from = org.core.Core.getConfigValue("messages.msg.from");
-        sender.sendMessage(MiniMessage.miniMessage().deserialize(to + player.getName() + ": <reset>" + message));
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(to, Placeholder.parsed("player", player.getName()), Placeholder.parsed("message", message)));
         if (sender instanceof Player) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(from + sender.getName() + ": <reset>" + message));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(from, Placeholder.parsed("player", sender.getName()), Placeholder.parsed("message", message)));
             Player p = (Player) sender;
             CoreData.dms.put(player.getUniqueId(), p.getUniqueId());
             CoreData.dms.put(p.getUniqueId(), player.getUniqueId());
         } else {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(from + "CONSOLE: <reset>" + message));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(from, Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("message", message)));
         }
     }
 
@@ -518,8 +554,8 @@ public class CoreCommands {
         if (CoreData.getDms().containsKey(p.getUniqueId())) {
             Player player = Bukkit.getPlayer(CoreData.getDms().get(p.getUniqueId()));
             if (player != null) {
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(to + player.getName() + ": <reset>" + message));
-                player.sendMessage(MiniMessage.miniMessage().deserialize(from + sender.getName() + ": <reset>" + message));
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(to, Placeholder.parsed("player", player.getName()), Placeholder.parsed("message", message)));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(from, Placeholder.parsed("player", sender.getName()), Placeholder.parsed("message", message)));
                 CoreData.dms.put(player.getUniqueId(), p.getUniqueId());
                 CoreData.dms.put(p.getUniqueId(), player.getUniqueId());
             } else {
@@ -535,10 +571,18 @@ public class CoreCommands {
     // Staff Chat
 
     @ProxiedBy("sc")
-    @CommandMethod("staffchat <message>")
+    @CommandMethod("staffchat [message]")
     @CommandDescription("Talk to other staff")
     @CommandPermission("core.staffchat")
-    public void staffchat(final @NotNull CommandSender sender, final @NotNull @Greedy @Argument("message") String message) {
+    public void staffchat(final @NotNull CommandSender sender, final @Greedy @Argument("message") String message) {
+        if (message == null) {
+            if (CoreData.isStaffchatting((Player) sender)) {
+                CoreData.unstaffchat((Player) sender);
+            } else {
+                CoreData.staffchat((Player) sender);
+            }
+            return;
+        }
         String staffchat = org.core.Core.getConfigValue("messages.staff.prefix");
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.hasPermission("core.staffchat")) {
@@ -781,6 +825,39 @@ public class CoreCommands {
             org.core.Core.muteChat = true;
             String muted = org.core.Core.getConfigValue("messages.mutechat.muted");
             sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(muted));
+        }
+    }
+
+    // Ignore
+
+    @ProxiedBy("block")
+    @CommandMethod("ignore <action> <player>")
+    @CommandDescription("Ignore/Block a player from messaging you and reading their chat")
+    @CommandPermission("core.ignore")
+    public void ignore(final @NotNull CommandSender sender, final @NotNull @Argument("action") String action, final @NotNull @Argument("player") Player player) {
+        if (sender instanceof Player) {
+            Player p = (Player) sender;
+            if (action.equalsIgnoreCase("add")) {
+                if (CoreData.isIgnored(p, player)) {
+                    String alreadyignored = org.core.Core.getConfigValue("messages.ignore.already");
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(alreadyignored + player.getName()));
+                } else {
+                    CoreData.ignore(p, player);
+                }
+            } else if (action.equalsIgnoreCase("remove")) {
+                if (!CoreData.isIgnored(p, player)) {
+                    String notignored = org.core.Core.getConfigValue("messages.ignore.notignored");
+                    p.sendMessage(MiniMessage.miniMessage().deserialize(notignored + player.getName()));
+                } else {
+                    CoreData.unignore(p, player);
+                }
+            } else {
+                String invalid = org.core.Core.getConfigValue("messages.invalid");
+                p.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nUse /ignore <add/remove> <player>"));
+            }
+        } else {
+            String invalid = org.core.Core.getConfigValue("messages.invalid");
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
         }
     }
 }

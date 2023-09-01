@@ -1,8 +1,50 @@
-## Core for PrismarineXYZ
-
+# <p align=center> Prismarine Core
 ### Todo:
-- [ ] Make the config file use PlaceHolderAPI in maven to parse arguments instead of raw adding them
-- [ ] Add "modules": FFA, Events, Core, Clans 
-- [ ] Implement custom Chat
-- [ ] Implement custom Tablist
-- [ ] Implement custom Scoreboard
+Dates are in the format of `DD/MM/YYYY`
+- [x] Core (General Commands and Chat formatting)
+  - [x] Chat and Private Messages [done on 1/9/2023]
+    - [ ] Prefix and Suffix support (custom or PAPI)
+    - [ ] Discord Bridge using Webhooks or Bot
+  - [ ] TAB
+  - [ ] Scoreboard
+  - [ ] Punishments ([Temp]Mute, Kick, [Temp]Ban, [Temp]IPBan) 
+    - [ ] Reason Handling (Either Chat(?) GUI or [If string contains cheating > "Unfair Advantage"])
+    - [ ] History
+  - [ ] Economy
+    - [ ] Hook into Vault and expose API 
+  - [ ] Permissions (Custom or Luckperms??)
+    - [ ] Groups
+      - [ ] Permissions
+        - [ ] Temporary 
+      - [ ] Prefix and Suffix
+      - [ ] Parents
+      - [ ] Weight (for TAB sorting)
+    - [ ] Users
+      - [ ] Group grants
+        - [ ] Temporary
+        - [ ] Reason
+      - [ ] Prefix and Suffix
+      - [ ] Permissions 
+        - [ ] Temporary
+    - [ ] API
+- [ ] PvP
+  - [ ] Clans/Guilds
+  - [ ] Custom Death Messages
+  - [ ] Statistics
+    - [ ] Kills, Deaths, KDR
+    - [ ] Killstreaks
+  - [ ] Kits
+    - [ ] Potion Effects
+  - [ ] FFA
+    - [ ] Warps/Spawns
+      - [ ] Command Arguments
+      - [ ] GUI
+        - [ ] Customizable Items and Names
+        - [ ] Customizable Slots
+  - [ ] Duels
+    - [ ] Arenas
+      - [ ] Saving
+      - [ ] Loading
+    - [ ] Queues
+      - [ ] Unranked
+      - [ ] Ranked

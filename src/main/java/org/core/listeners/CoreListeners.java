@@ -1,7 +1,6 @@
 package org.core.listeners;
 
 import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
@@ -9,19 +8,28 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.WrappedServerPing;
 import com.google.common.collect.ImmutableList;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.core.Core;
 import org.core.data.CoreData;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.core.Core.getPlugin;
 import static org.core.data.CoreData.getVanishedPlayers;
@@ -33,12 +41,19 @@ public class CoreListeners implements Listener {
     }
 
     public void VanishListener() {
-        ProtocolLibrary.getProtocolManager().addPacketListener(new PacketAdapter(getPlugin(), ListenerPriority.HIGH, PacketType.Status.Server.SERVER_INFO){
+        Core.getProtocolManager().addPacketListener(new PacketAdapter(getPlugin(), ListenerPriority.HIGH, PacketType.Status.Server.SERVER_INFO){
             public void onPacketSending(PacketEvent event) {
                 PacketContainer packet = event.getPacket();
                 WrappedServerPing ping = packet.getServerPings().read(0);
                 ImmutableList<WrappedGameProfile> players = ping.getPlayers();
-                ping.setPlayers(players.stream().filter((player) -> !getVanishedPlayers().contains(((Player)player).getUniqueId())).collect(Collectors.toList()));
+                ImmutableList.Builder<WrappedGameProfile> newPlayers = ImmutableList.builder();
+                for (WrappedGameProfile player : players) {
+                    if (CoreData.isVanished((Player) player)) {
+                        continue;
+                    }
+                    newPlayers.add(player);
+                }
+                ping.setPlayers(newPlayers.build());
                 packet.getServerPings().write(0, ping);
                 event.setPacket(packet);
             }
@@ -47,6 +62,14 @@ public class CoreListeners implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        // Join message
+        String join = org.core.Core.getConfigValue("messages.join");
+        event.joinMessage(MiniMessage.miniMessage().deserialize(join + event.getPlayer().getName()));
+        // Welcome Message
+        for (Object line : org.core.Core.getConfigListValue("messages.welcome")) {
+            event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize((String) line));
+        }
+        // Vanish
         Set<UUID> vanished = getVanishedPlayers();
         if (vanished.isEmpty()) {
             return;
@@ -64,15 +87,18 @@ public class CoreListeners implements Listener {
         }
         // Freeze
         if (CoreData.isFrozen(p)) {
-            CoreData.unfreeze(p);
+            CoreData.unfreeze(p, null);
             p.setFlying(false);
             p.setInvulnerable(false);
             String staffprefix = org.core.Core.getConfigValue("messages.staff.prefix");
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!player.hasPermission("core.staffchat")) continue;
-                player.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + p.getName() + " <red>left while frozen!"));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + p.getName() + " left while frozen!"));
             }
         }
+        // Quit Message
+        String quit = org.core.Core.getConfigValue("messages.quit");
+        event.quitMessage(MiniMessage.miniMessage().deserialize(quit + event.getPlayer().getName()));
     }
 
     // Freeze
@@ -101,4 +127,84 @@ public class CoreListeners implements Listener {
         }
     }
 
+    // Chat
+
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onChat(AsyncChatEvent e) {
+        if (!e.isCancelled()) {
+            if (CoreData.isStaffchatting(e.getPlayer())) {
+                e.setCancelled(true);
+                String staffprefix = org.core.Core.getConfigValue("messages.staff.prefix");
+                String mention = org.core.Core.getConfigValue("messages.mention");
+                new BukkitRunnable() {
+                    public void run() {
+                        for (Player p : Bukkit.getOnlinePlayers()) {
+                            String message = MiniMessage.miniMessage().serialize(e.message());
+                            if (message.contains(p.getName())) {
+                                message = message.replaceFirst(p.getName(), mention);
+                                String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+                                Component pformat = MiniMessage.miniMessage().deserialize(staffprefix + org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
+                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+                                p.sendMessage(pformat);
+                                continue;
+                            }
+                            p.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
+                        }
+                    }
+                }.runTaskAsynchronously(getPlugin());
+                getPlugin().getServer().getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gold>[STAFFCHAT] " + e.getPlayer().getName() + ": " + MiniMessage.miniMessage().serialize(e.message())));
+                return;
+            }
+            e.setCancelled(true);
+            if (!e.getPlayer().hasPermission("core.chatfilter.bypass")) {
+                for (Object word : Core.getConfigListValue("chatfilter")) {
+                    if (e.message().contains(MiniMessage.miniMessage().deserialize((String) word))) {
+                        e.setCancelled(true);
+                        String filtered = org.core.Core.getConfigValue("messages.filtered");
+                        e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(filtered));
+                        return;
+                    }
+                }
+            }
+            if (!e.getPlayer().hasPermission("core.chatcooldown.bypass")) {
+                if (CoreData.chatCooldowns.contains(e.getPlayer().getUniqueId())) {
+                    e.setCancelled(true);
+                    String cooldown = org.core.Core.getConfigValue("messages.cooldown");
+                    e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(cooldown));
+                    return;
+                }
+            }
+            if (Core.muteChat && !e.getPlayer().hasPermission("core.mutechat.bypass")) {
+                e.setCancelled(true);
+                String muted = org.core.Core.getConfigValue("messages.mutechat.muted");
+                e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(muted));
+                return;
+            }
+            String mention = org.core.Core.getConfigValue("messages.mention");
+            new BukkitRunnable() {
+                public void run() {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (CoreData.isIgnored(p, e.getPlayer())) continue;
+                        String message = MiniMessage.miniMessage().serialize(e.message());
+                        if (message.contains(p.getName())) {
+                            message = message.replaceFirst(p.getName(), mention);
+                            String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));
+                            Component pformat = MiniMessage.miniMessage().deserialize(org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
+                            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+                            p.sendMessage(pformat);
+                            continue;
+                        }
+                        p.sendMessage(MiniMessage.miniMessage().deserialize(org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
+                    }
+                }
+            }.runTaskAsynchronously(getPlugin());
+            getPlugin().getServer().getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<aqua>[CHAT] " + e.getPlayer().getName() + ": " + MiniMessage.miniMessage().serialize(e.message())));
+            CoreData.chatCooldowns.add(e.getPlayer().getUniqueId());
+            new BukkitRunnable() {
+                public void run() {
+                    CoreData.chatCooldowns.remove(e.getPlayer().getUniqueId());
+                }
+            }.runTaskLater(getPlugin(), 20L);
+        }
+    }
 }
