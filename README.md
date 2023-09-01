@@ -5,14 +5,18 @@ Dates are in the format of `DD/MM/YYYY`
   - [x] Chat and Private Messages [done on 1/9/2023]
     - [ ] Prefix and Suffix support (custom or PAPI)
     - [ ] Discord Bridge using Webhooks or Bot
+  - [ ] Auth System
+    - [ ] Login & Register Command
+    - [ ] Auto Login based on IP
+    - [ ] Auto Login Premium
   - [ ] TAB
   - [ ] Scoreboard
-  - [ ] Punishments ([Temp]Mute, Kick, [Temp]Ban, [Temp]IPBan) 
+  - [ ] Punishments ([Temp]Mute, Kick, [Temp]&[IP]Ban, [IP]Blacklist) 
     - [ ] Reason Handling (Either Chat(?) GUI or [If string contains cheating > "Unfair Advantage"])
     - [ ] History
   - [ ] Economy
     - [ ] Hook into Vault and expose API 
-  - [ ] Permissions (Custom or Luckperms??)
+  - [ ] Permissions
     - [ ] Groups
       - [ ] Permissions
         - [ ] Temporary 
@@ -27,6 +31,18 @@ Dates are in the format of `DD/MM/YYYY`
       - [ ] Permissions 
         - [ ] Temporary
     - [ ] API
+    - [ ] GUI
+      - [ ] Group Editor
+      - [ ] User Editor
+      - [ ] Group Selector
+      - [ ] User Selector
+    - [ ] LuckPerms Integration
+      - [ ] Group Sync
+      - [ ] User Sync
+      - [ ] Prefix and Suffix Sync
+      - [ ] Permissions Sync
+      - [ ] Parent Sync
+      - [ ] Weight Sync
 - [ ] PvP
   - [ ] Clans/Guilds
   - [ ] Custom Death Messages
