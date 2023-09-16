@@ -1,4 +1,4 @@
-package org.core;
+package org.prismcore;
 
 import cloud.commandframework.CommandTree;
 import cloud.commandframework.arguments.parser.ParserParameters;
@@ -22,8 +22,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.core.commands.CoreCommands;
-import org.core.listeners.CoreListeners;
+import org.prismcore.commands.CoreCommands;
+import org.prismcore.listeners.CoreListeners;
+import org.prismcore.messages.CoreMessages;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -144,7 +145,7 @@ public final class Core extends JavaPlugin {
 
         // End Cloud Command API
 
-        for (Object modules : org.core.Core.getConfigListValue("modules")) {
+        for (Object modules : getYmlListValue("modules")) {
             if (modules.toString().equalsIgnoreCase("core")) {
                 this.annotationParser.parse(new CoreCommands());
                 pm.registerEvents(new CoreListeners(), this);
@@ -152,16 +153,15 @@ public final class Core extends JavaPlugin {
         }
     }
 
-    public static String getConfigValue(@NotNull String value) {
-        YamlConfiguration c = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml"));
+    public static String getYmlValue(@NotNull String value) {
         try {
-            return c.get(value).toString();
-        } catch (NullPointerException e) {
+            return CoreMessages.class.getField(value).get(null).toString();
+        } catch (Exception e) {
             return "Error! Value " + value + " not found in config or was empty! | ";
         }
     }
-    public static List getConfigListValue(@NotNull String value) {
-        return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "config.yml")).getList(value);
+    public static List getYmlListValue(@NotNull String value) {
+        return Core.getPlugin().getConfig().getList(value);
     }
 
     @Override

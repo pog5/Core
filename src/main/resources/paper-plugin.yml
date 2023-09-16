@@ -1,10 +1,10 @@
-name: Core
+name: PrismCore
 version: '${project.version}'
-main: org.core.Core
+main: org.prismcore.Core
 authors: [ pixelNightly ]
 contributors: [ ChatGPT ]
-description: Main Plugin
-website: pog5.me
+description: CorePlugin with Staff Commands, Messages, Chat, Punishments and more!
+website: https://github.com/pog5/PrismCore
 dependencies:
   server:
     ProtocolLib:

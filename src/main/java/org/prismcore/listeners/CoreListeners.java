@@ -1,4 +1,4 @@
-package org.core.listeners;
+package org.prismcore.listeners;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.ListenerPriority;
@@ -10,11 +10,8 @@ import com.comphenix.protocol.wrappers.WrappedServerPing;
 import com.google.common.collect.ImmutableList;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -23,16 +20,15 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.core.Core;
-import org.core.data.CoreData;
+import org.prismcore.Core;
+import org.prismcore.data.CoreData;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.core.Core.getPlugin;
-import static org.core.data.CoreData.getVanishedPlayers;
+import static org.prismcore.Core.getPlugin;
+import static org.prismcore.data.CoreData.getVanishedPlayers;
 
 public class CoreListeners implements Listener {
 
@@ -63,10 +59,10 @@ public class CoreListeners implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // Join message
-        String join = org.core.Core.getConfigValue("messages.join");
+        String join = org.prismcore.Core.getConfigValue("messages.join");
         event.joinMessage(MiniMessage.miniMessage().deserialize(join + event.getPlayer().getName()));
         // Welcome Message
-        for (Object welcome : org.core.Core.getConfigListValue("welcome")) {
+        for (Object welcome : org.prismcore.Core.getConfigListValue("welcome")) {
             event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize((String) welcome));
         }
         // Vanish
@@ -90,14 +86,14 @@ public class CoreListeners implements Listener {
             CoreData.unfreeze(p, null);
             p.setFlying(false);
             p.setInvulnerable(false);
-            String staffprefix = org.core.Core.getConfigValue("messages.staff.prefix");
+            String staffprefix = org.prismcore.Core.getConfigValue("messages.staff.prefix");
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!player.hasPermission("core.staffchat")) continue;
                 player.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + p.getName() + " left while frozen!"));
             }
         }
         // Quit Message
-        String quit = org.core.Core.getConfigValue("messages.quit");
+        String quit = org.prismcore.Core.getConfigValue("messages.quit");
         event.quitMessage(MiniMessage.miniMessage().deserialize(quit + event.getPlayer().getName()));
     }
 
@@ -134,8 +130,8 @@ public class CoreListeners implements Listener {
         if (!e.isCancelled()) {
             if (CoreData.isStaffchatting(e.getPlayer())) {
                 e.setCancelled(true);
-                String staffprefix = org.core.Core.getConfigValue("messages.staff.prefix");
-                String mention = org.core.Core.getConfigValue("messages.mention");
+                String staffprefix = org.prismcore.Core.getConfigValue("messages.staff.prefix");
+                String mention = org.prismcore.Core.getConfigValue("messages.mention");
                 new BukkitRunnable() {
                     public void run() {
                         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -143,12 +139,12 @@ public class CoreListeners implements Listener {
                             if (message.contains(p.getName())) {
                                 message = message.replaceFirst(p.getName(), mention);
                                 String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-                                Component pformat = MiniMessage.miniMessage().deserialize(staffprefix + org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
+                                Component pformat = MiniMessage.miniMessage().deserialize(staffprefix + org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
                                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                                 p.sendMessage(pformat);
                                 continue;
                             }
-                            p.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
+                            p.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
                         }
                     }
                 }.runTaskAsynchronously(getPlugin());
@@ -160,7 +156,7 @@ public class CoreListeners implements Listener {
                 for (Object word : Core.getConfigListValue("chatfilter")) {
                     if (e.message().contains(MiniMessage.miniMessage().deserialize((String) word))) {
                         e.setCancelled(true);
-                        String filtered = org.core.Core.getConfigValue("messages.filtered");
+                        String filtered = org.prismcore.Core.getConfigValue("messages.filtered");
                         e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(filtered));
                         return;
                     }
@@ -169,18 +165,18 @@ public class CoreListeners implements Listener {
             if (!e.getPlayer().hasPermission("core.chatcooldown.bypass")) {
                 if (CoreData.chatCooldowns.contains(e.getPlayer().getUniqueId())) {
                     e.setCancelled(true);
-                    String cooldown = org.core.Core.getConfigValue("messages.cooldown");
+                    String cooldown = org.prismcore.Core.getConfigValue("messages.cooldown");
                     e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(cooldown));
                     return;
                 }
             }
             if (Core.muteChat && !e.getPlayer().hasPermission("core.mutechat.bypass")) {
                 e.setCancelled(true);
-                String muted = org.core.Core.getConfigValue("messages.mutechat.muted");
+                String muted = org.prismcore.Core.getConfigValue("messages.mutechat.muted");
                 e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(muted));
                 return;
             }
-            String mention = org.core.Core.getConfigValue("messages.mention");
+            String mention = org.prismcore.Core.getConfigValue("messages.mention");
             new BukkitRunnable() {
                 public void run() {
                     for (Player p : Bukkit.getOnlinePlayers()) {
@@ -189,12 +185,12 @@ public class CoreListeners implements Listener {
                         if (message.contains(p.getName())) {
                             message = message.replaceFirst(p.getName(), mention);
                             String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));
-                            Component pformat = MiniMessage.miniMessage().deserialize(org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
+                            Component pformat = MiniMessage.miniMessage().deserialize(org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
                             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                             p.sendMessage(pformat);
                             continue;
                         }
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(org.core.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
+                        p.sendMessage(MiniMessage.miniMessage().deserialize(org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
                     }
                 }
             }.runTaskAsynchronously(getPlugin());

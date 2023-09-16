@@ -5,15 +5,15 @@ Dates are in the format of `DD/MM/YYYY`
   - [x] Chat and Private Messages [done on 1/9/2023]
     - [ ] Prefix and Suffix support (custom or PAPI)
     - [ ] Discord Bridge using Webhooks or Bot
+  - [ ] Punishments ([Temp]Mute, Kick, [Temp]&[IP]Ban, [IP]Blacklist) 
+    - [ ] Reason Handling (Either Chat(?) GUI or [If string contains cheating > "Unfair Advantage"])
+    - [ ] History
   - [ ] Auth System
     - [ ] Login & Register Command
     - [ ] Auto Login based on IP
     - [ ] Auto Login Premium
   - [ ] TAB
   - [ ] Scoreboard
-  - [ ] Punishments ([Temp]Mute, Kick, [Temp]&[IP]Ban, [IP]Blacklist) 
-    - [ ] Reason Handling (Either Chat(?) GUI or [If string contains cheating > "Unfair Advantage"])
-    - [ ] History
   - [ ] Economy
     - [ ] Hook into Vault and expose API 
   - [ ] Permissions
@@ -43,6 +43,8 @@ Dates are in the format of `DD/MM/YYYY`
       - [ ] Permissions Sync
       - [ ] Parent Sync
       - [ ] Weight Sync
+
+# PvP Plugin
 - [ ] PvP
   - [ ] Clans/Guilds
   - [ ] Custom Death Messages
