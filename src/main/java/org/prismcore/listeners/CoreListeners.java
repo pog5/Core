@@ -134,6 +134,13 @@ public class CoreListeners implements Listener {
                 return;
             }
             e.setCancelled(true);
+            if (CoreData.isMuted(e.getPlayer())) {
+                e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.muted,
+                        Placeholder.unparsed("expiry", CoreData.getMuteTime(e.getPlayer()).toString()),
+                        Placeholder.unparsed("reason", CoreData.getMuteReason(e.getPlayer())),
+                        Placeholder.unparsed("staff", CoreData.getMuter(e.getPlayer()).getName())));
+                return;
+            }
             if (!e.getPlayer().hasPermission("core.chatfilter.bypass")) {
                 for (String blocked : CoreMessages.chatfilter) {
                     if (MiniMessage.miniMessage().serialize(e.message()).contains(blocked)) {

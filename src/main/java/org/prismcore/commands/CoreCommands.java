@@ -970,27 +970,24 @@ public class CoreCommands {
     // Unban
 
     @ProxiedBy("ub")
-    @CommandMethod("unban <player> <reason>")
-    @CommandDescription("Unban a player with a reason")
+    @CommandMethod("unban <player>")
+    @CommandDescription("Unban a player")
     @CommandPermission("prismcore.unban")
     public void unban(final @NotNull CommandSender sender,
-                      final @NotNull @Argument("player") OfflinePlayer player,
-                      final @NotNull @Greedy @Argument("reason") String reason) {
+                      final @NotNull @Argument("player") OfflinePlayer player) {
         try {
             if (sender instanceof Player) {
                 ((ProfileBanList) sender.getServer().getBanList(BanList.Type.PROFILE)).pardon(player.getPlayerProfile());
                 Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
                         Placeholder.parsed("player", player.getName()),
                         Placeholder.parsed("punishment", "unbanned"),
-                        Placeholder.parsed("staff", sender.getName()),
-                        Placeholder.parsed("reason", reason)), "prismcore.staffchat");
+                        Placeholder.parsed("staff", sender.getName())), "prismcore.staffchat");
             } else {
                 ((ProfileBanList) sender.getServer().getBanList(BanList.Type.PROFILE)).pardon(player.getPlayerProfile());
                 Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
                         Placeholder.parsed("player", player.getName()),
                         Placeholder.parsed("punishment", "unbanned"),
-                        Placeholder.parsed("staff", "CONSOLE"),
-                        Placeholder.parsed("reason", reason)), "prismcore.staffchat");
+                        Placeholder.parsed("staff", "CONSOLE")), "prismcore.staffchat");
             }
         } catch (NullPointerException e) {
             sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player has never played before!"));
@@ -1029,6 +1026,65 @@ public class CoreCommands {
             }
             Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true));
             Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
+        } catch (NullPointerException e) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
+        }
+    }
+
+    // Mute and Unmute
+
+    @CommandMethod("mute|tempmute|tm <player> <duration> <reason> [-s]")
+    @CommandDescription("Mute a player with a reason for a duration (perm for permanent)")
+    @CommandPermission("prismcore.mute")
+    public void mute(final @NotNull CommandSender sender,
+                     final @NotNull @Argument("player") Player player,
+                     final @NotNull @Argument("duration") String duration,
+                     final @Argument ("-s") String silent,
+                     final @NotNull @Greedy @Argument("reason") String reason) {
+        try {
+            Component punishmsg;
+            if (sender instanceof Player) {
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "muted"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("reason", reason));
+            } else {
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "muted"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("reason", reason));
+            }
+            if (!reason.endsWith("-s")) {
+                Bukkit.broadcast(punishmsg);
+            }
+            CoreData.mute(player, reason, getPunishDuration(duration), sender);
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
+        } catch (NullPointerException e) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
+        }
+    }
+
+    @CommandMethod("unmute <player>")
+    @CommandDescription("Unmute a player")
+    @CommandPermission("prismcore.unmute")
+    public void unmute(final @NotNull CommandSender sender,
+                       final @NotNull @Argument("player") Player player) {
+        try {
+            if (sender instanceof Player) {
+                CoreData.unmute(player, sender);
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "unmuted"),
+                        Placeholder.parsed("staff", sender.getName())), "prismcore.staffchat");
+            } else {
+                CoreData.unmute(player, sender);
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "unmuted"),
+                        Placeholder.parsed("staff", "CONSOLE")), "prismcore.staffchat");
+            }
         } catch (NullPointerException e) {
             sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
         }

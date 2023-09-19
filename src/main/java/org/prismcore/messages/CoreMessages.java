@@ -20,6 +20,8 @@ public class CoreMessages {
     public static final String[] chatfilter = {"",
             "grr",
     ""};
+    public static final String muted = "<gradient:#ff5555:#ffb86c>You are muted until <expiry> for <reason> by <staff>!";
+    public static final String unmuted = "<gradient:#50fa7b:#8be9fd>You have been unmuted!";
 
     public static final String chatformat = "<#89b4fa><player>: <gray><message>";
 
@@ -47,6 +49,7 @@ public class CoreMessages {
     public static final String stafffrozen = "<target> was <un>frozen by <player>";
     public static final String staffvanished = "<player> has <un>vanished";
     public static final String staffchattoggled = "<#ff5555>You have <state> staff chat!";
+    public static final String notmuted = "<gradient:#ff5555:#ffb86c>That player is not muted!";
     public static final String teleported = "<#ea76cb>Teleported <target> to <destination>";
     public static final String lag = "<gradient:#50fa7b:#8be9fd>Status: TPS: <tps> | MSPT: <mspt>ms | Used Memory: <memory>mb";
     public static final String msg = "<gradient:#e64553:#fe640b><direction> <player>: <white><message>";
