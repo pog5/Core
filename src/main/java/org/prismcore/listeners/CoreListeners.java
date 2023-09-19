@@ -22,7 +22,9 @@ import org.bukkit.event.player.*;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.prismcore.Core;
 import org.prismcore.data.CoreData;
+import org.prismcore.messages.CoreMessages;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -59,42 +61,33 @@ public class CoreListeners implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         // Join message
-        String join = org.prismcore.Core.getConfigValue("messages.join");
-        event.joinMessage(MiniMessage.miniMessage().deserialize(join + event.getPlayer().getName()));
+        event.joinMessage(MiniMessage.miniMessage().deserialize(CoreMessages.join, Placeholder.parsed("player", event.getPlayer().getName())));
         // Welcome Message
-        for (Object welcome : org.prismcore.Core.getConfigListValue("welcome")) {
-            event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize((String) welcome));
-        }
+        Arrays.stream(CoreMessages.welcome).forEach(welcome -> event.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(welcome)));
         // Vanish
         Set<UUID> vanished = getVanishedPlayers();
-        if (vanished.isEmpty()) {
-            return;
-        }
+        if (vanished.isEmpty()) return;
         vanished.stream().filter(uuid -> !uuid.equals(event.getPlayer().getUniqueId())).filter(uuid -> Bukkit.getServer().getPlayer(uuid) != null).forEach(uuid -> event.getPlayer().hidePlayer(getPlugin(), Objects.requireNonNull(Bukkit.getServer().getPlayer(uuid))));
     }
 
     @EventHandler(priority= EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         Player p = event.getPlayer();
-        // Vanish
-        if (CoreData.isVanished(event.getPlayer())) {
-            CoreData.unvanish(event.getPlayer());
-            event.quitMessage(null);
-        }
         // Freeze
         if (CoreData.isFrozen(p)) {
             CoreData.unfreeze(p, null);
             p.setFlying(false);
             p.setInvulnerable(false);
-            String staffprefix = org.prismcore.Core.getConfigValue("messages.staff.prefix");
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (!player.hasPermission("core.staffchat")) continue;
-                player.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + p.getName() + " left while frozen!"));
-            }
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + p.getName() + " left while frozen!"), "core.staffchat");
+        }
+        // Vanish
+        if (CoreData.isVanished(event.getPlayer())) {
+            CoreData.unvanish(event.getPlayer());
+            event.quitMessage(null);
+            return;
         }
         // Quit Message
-        String quit = org.prismcore.Core.getConfigValue("messages.quit");
-        event.quitMessage(MiniMessage.miniMessage().deserialize(quit + event.getPlayer().getName()));
+        event.quitMessage(MiniMessage.miniMessage().deserialize(CoreMessages.leave, Placeholder.parsed("player", event.getPlayer().getName())));
     }
 
     // Freeze
@@ -130,22 +123,11 @@ public class CoreListeners implements Listener {
         if (!e.isCancelled()) {
             if (CoreData.isStaffchatting(e.getPlayer())) {
                 e.setCancelled(true);
-                String staffprefix = org.prismcore.Core.getConfigValue("messages.staff.prefix");
-                String mention = org.prismcore.Core.getConfigValue("messages.mention");
                 new BukkitRunnable() {
                     public void run() {
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            String message = MiniMessage.miniMessage().serialize(e.message());
-                            if (message.contains(p.getName())) {
-                                message = message.replaceFirst(p.getName(), mention);
-                                String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-                                Component pformat = MiniMessage.miniMessage().deserialize(staffprefix + org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
-                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-                                p.sendMessage(pformat);
-                                continue;
-                            }
-                            p.sendMessage(MiniMessage.miniMessage().deserialize(staffprefix + org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
-                        }
+                        Bukkit.getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.chatformat,
+                            Placeholder.unparsed("player", e.getPlayer().getName()),
+                            Placeholder.unparsed("message", MiniMessage.miniMessage().serialize(e.message()))), "core.staffchat");
                     }
                 }.runTaskAsynchronously(getPlugin());
                 getPlugin().getServer().getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gold>[STAFFCHAT] " + e.getPlayer().getName() + ": " + MiniMessage.miniMessage().serialize(e.message())));
@@ -153,11 +135,10 @@ public class CoreListeners implements Listener {
             }
             e.setCancelled(true);
             if (!e.getPlayer().hasPermission("core.chatfilter.bypass")) {
-                for (Object word : Core.getConfigListValue("chatfilter")) {
-                    if (e.message().contains(MiniMessage.miniMessage().deserialize((String) word))) {
+                for (String blocked : CoreMessages.chatfilter) {
+                    if (MiniMessage.miniMessage().serialize(e.message()).contains(blocked)) {
                         e.setCancelled(true);
-                        String filtered = org.prismcore.Core.getConfigValue("messages.filtered");
-                        e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(filtered));
+                        e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.messagefiltered));
                         return;
                     }
                 }
@@ -165,32 +146,35 @@ public class CoreListeners implements Listener {
             if (!e.getPlayer().hasPermission("core.chatcooldown.bypass")) {
                 if (CoreData.chatCooldowns.contains(e.getPlayer().getUniqueId())) {
                     e.setCancelled(true);
-                    String cooldown = org.prismcore.Core.getConfigValue("messages.cooldown");
-                    e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(cooldown));
+                    e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.cooldown));
                     return;
                 }
             }
             if (Core.muteChat && !e.getPlayer().hasPermission("core.mutechat.bypass")) {
                 e.setCancelled(true);
-                String muted = org.prismcore.Core.getConfigValue("messages.mutechat.muted");
-                e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(muted));
+                e.getPlayer().sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.chatstaffed,
+                        Placeholder.unparsed("state", "muted")));
                 return;
             }
-            String mention = org.prismcore.Core.getConfigValue("messages.mention");
             new BukkitRunnable() {
                 public void run() {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         if (CoreData.isIgnored(p, e.getPlayer())) continue;
                         String message = MiniMessage.miniMessage().serialize(e.message());
                         if (message.contains(p.getName())) {
-                            message = message.replaceFirst(p.getName(), mention);
-                            String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message, Placeholder.unparsed("mentioned", p.getName())));
-                            Component pformat = MiniMessage.miniMessage().deserialize(org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.parsed("message", mentionmsg));
+                            message = message.replaceFirst(p.getName(), CoreMessages.mentionformat);
+                            String mentionmsg = MiniMessage.miniMessage().serialize(MiniMessage.miniMessage().deserialize(message,
+                                    Placeholder.unparsed("mentioned", p.getName())));
+                            Component pformat = MiniMessage.miniMessage().deserialize(CoreMessages.chatformat,
+                                    Placeholder.unparsed("player", e.getPlayer().getName()),
+                                    Placeholder.parsed("message", mentionmsg));
                             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                             p.sendMessage(pformat);
                             continue;
                         }
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(org.prismcore.Core.getConfigValue("messages.chat"), Placeholder.unparsed("player", e.getPlayer().getName()), Placeholder.unparsed("message", message)));
+                        p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.chatformat,
+                                Placeholder.unparsed("player", e.getPlayer().getName()),
+                                Placeholder.unparsed("message", message)));
                     }
                 }
             }.runTaskAsynchronously(getPlugin());
@@ -200,7 +184,7 @@ public class CoreListeners implements Listener {
                 public void run() {
                     CoreData.chatCooldowns.remove(e.getPlayer().getUniqueId());
                 }
-            }.runTaskLater(getPlugin(), 20L);
+            }.runTaskLater(getPlugin(), 10L);
         }
     }
 }

@@ -15,6 +15,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import cloud.commandframework.annotations.AnnotationParser;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -37,12 +38,10 @@ import java.util.function.Function;
 import static net.kyori.adventure.text.Component.text;
 
 public final class Core extends JavaPlugin {
-    private AnnotationParser<CommandSender> annotationParser;
     public static ProtocolManager protocolManager;
     public File configFile = new File(this.getDataFolder(), "config.yml");
     public FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
     private static Core plugin;
-    public static Path plugindir;
     private static File dataFile;
     private static FileConfiguration data;
     public static FileConfiguration getData() {
@@ -119,16 +118,16 @@ public final class Core extends JavaPlugin {
                 15L,
                 TimeUnit.SECONDS,
                 /* Action when confirmation is required */ context -> context.getCommandContext().getSender().sendMessage(
-                ChatColor.RED + "Confirmation required. Confirm using /core confirm."),
+                NamedTextColor.RED + "Confirmation required. Confirm using /core confirm."),
                 /* Action when no confirmation is pending */ sender -> sender.sendMessage(
-                ChatColor.RED + "You don't have any pending commands.")
+                NamedTextColor.RED + "You don't have any pending commands.")
         );
         confirmationManager.registerConfirmationProcessor(manager);
         final Function<ParserParameters, CommandMeta> commandMetaFunction = p ->
                 CommandMeta.simple()
                         .with(CommandMeta.DESCRIPTION, p.get(StandardParameters.DESCRIPTION, "No description"))
                         .build();
-        this.annotationParser = new AnnotationParser<>(
+        AnnotationParser<CommandSender> annotationParser = new AnnotationParser<>(
                 manager,
                 CommandSender.class,
                 commandMetaFunction
@@ -147,7 +146,7 @@ public final class Core extends JavaPlugin {
 
         for (Object modules : getYmlListValue("modules")) {
             if (modules.toString().equalsIgnoreCase("core")) {
-                this.annotationParser.parse(new CoreCommands());
+                annotationParser.parse(new CoreCommands());
                 pm.registerEvents(new CoreListeners(), this);
             }
         }

@@ -24,10 +24,10 @@ public class CoreMessages {
     public static final String chatformat = "<#89b4fa><player>: <gray><message>";
 
     public static final String mentionformat = "<gradient:#ea76cb:#dd7878><mentioned></gradient>";
-    public static final String messagefiltered = "<gradient:#ff5555:#ffb86c>Message filtered!";
+    public static final String messagefiltered = "<gradient:#ff5555:#ffb86c>You are not allowed to say that!\nTrying to bypass the filter will result in a mute.";
     public static final String cooldown = "<gradient:#ff5555:#ffb86c>Slow down!";
-    public static final String leave = "<gradient:#ff5555:#ffb86c>←";
-    public static final String join = "<gradient:#50fa7b:#8be9fd>➜";
+    public static final String leave = "<gradient:#ff5555:#ffb86c>← <player>";
+    public static final String join = "<gradient:#50fa7b:#8be9fd>➜ <player>";
     public static final String nopermission = "<gradient:#ff5555:#ffb86c>No permission!";
     public static final String invalidargument = "<gradient:#ff5555:#ffb86c>Missing/Invalid arguments or not supported!";
     public static final String discord = "<gradient:#50fa7b:#8be9fd>Discord: <click:open_url:https://discord.prismarine.xyz/>https://discord.prismarine.xyz/</click>";
@@ -42,24 +42,21 @@ public class CoreMessages {
     public static final String god = "<#fab387>God mode <state>";
     public static final String gave = "<#ea76cb>Gave <player> <amount> <item>";
     public static final String gamemode = "<#ea76cb><player> gamemode was set to <gamemode>";
-    public static final String punishalert = "<gradient:#ff5555:#ffb86c> ⚠ <player> has been <punishment> for <reason>";
-    public static final String punishkick = "<gradient:#ff5555:#ffb86c>You have been <punishment> by <player> for <reason>";
+    public static final String punishmsg = "<gradient:#ff5555:#ffb86c> ⚠ <player> has been <punishment> for <time> by <staff> for <reason>";
     public static final String staffprefix = "<#7287fd>[STAFF] <#89b4fa>";
     public static final String stafffrozen = "<target> was <un>frozen by <player>";
     public static final String staffvanished = "<player> has <un>vanished";
-    public static final String staffpunished = "<target> was <punishment> by <player> for <reason>";
     public static final String staffchattoggled = "<#ff5555>You have <state> staff chat!";
     public static final String teleported = "<#ea76cb>Teleported <target> to <destination>";
     public static final String lag = "<gradient:#50fa7b:#8be9fd>Status: TPS: <tps> | MSPT: <mspt>ms | Used Memory: <memory>mb";
     public static final String msg = "<gradient:#e64553:#fe640b><direction> <player>: <white><message>";
     public static final String noreply = "<gradient:#ff5555:#ffb86c>You have noone to reply to!</gradient>";
+    public static final String ping = "<#04a5e5><player>'s ping: <#ff5555><ping>ms";
     public static final String frozen = "<gradient:#ff5555:#ffb86c>\n             ⚠ You have been frozen! ⚠\n       <reset><gradient:#ff5555:#ffb86c>Do not log out, wait for a staff member.\n";
     public static final String unfrozen = "<#50fa7b>You have been unfrozen";
     public static final String speed = "<#04a5e5><type> speed set to <speed>";
-    public static final String chatmuted = "<gradient:#ff5555:#ffb86c>Chat has been muted by a staff member!";
-    public static final String chatunmuted = "<#50fa7b>Chat has been unmuted!";
-    public static final String chatcleared = "<gradient:#ff5555:#ffb86c>Chat has been cleared by a staff member!";
+    public static final String chatstaffed = "<gradient:#ff5555:#ffb86c>Chat has been <state> by a staff member!";
     public static final String restarting = "<gradient:#ff5555:#ffb86c>Server is restarting<time>!";
-    public static final String ignored = "<#ff5555>You have <un>ignored <player>";
+    public static final String ignored = "<#ff5555>You have <state> <player>";
 
 }

@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
+import org.prismcore.messages.CoreMessages;
 
 import java.util.*;
 
@@ -31,30 +32,20 @@ public class CoreData {
         Core.getServer().getOnlinePlayers().stream().filter(p -> p != player && !p.hasPermission("core.vanish.bypass")).forEach(p -> p.hidePlayer(Core, player));
         player.setMetadata("vanished", new FixedMetadataValue(Core, true));
         vanished.add(player.getUniqueId());
-        String vanishedmsg = org.prismcore.Core.getConfigValue("messages.vanish.vanished");
-        player.sendMessage(MiniMessage.miniMessage().deserialize(vanishedmsg));
-        String left = org.prismcore.Core.getConfigValue("messages.quit");
-        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(left + player.getName()));
-        String staffchat = org.prismcore.Core.getConfigValue("messages.staff.prefix");
-        for (Player p2 : Bukkit.getOnlinePlayers()) {
-            if (!p2.hasPermission("core.staffchat")) continue;
-            p2.sendMessage(MiniMessage.miniMessage().deserialize(staffchat + player.getName() + " vanished!"));
-        }
+        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.leave, Placeholder.parsed("player", player.getName())));
+        Core.getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.staffvanished,
+                Placeholder.parsed("player", player.getName()),
+                Placeholder.parsed("un", "")), "core.staffchat");
     }
 
     public static void unvanish(Player player) {
         Core.getServer().getOnlinePlayers().forEach(p -> p.showPlayer(Core, player));
         player.setMetadata("vanished", new FixedMetadataValue(Core, false));
         vanished.remove(player.getUniqueId());
-        String unvanishedmsg = org.prismcore.Core.getConfigValue("messages.vanish.unvanished");
-        player.sendMessage(MiniMessage.miniMessage().deserialize(unvanishedmsg));
-        String join = org.prismcore.Core.getConfigValue("messages.join");
-        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(join + player.getName()));
-        String staffchat = org.prismcore.Core.getConfigValue("messages.staff.prefix");
-        for (Player p2 : Bukkit.getOnlinePlayers()) {
-            if (!p2.hasPermission("core.staffchat")) continue;
-            p2.sendMessage(MiniMessage.miniMessage().deserialize(staffchat + player.getName() + " unvanished!"));
-        }
+        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.join, Placeholder.parsed("player", player.getName())));
+        Core.getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.staffvanished,
+                Placeholder.parsed("player", player.getName()),
+                Placeholder.parsed("un", "un")), "core.staffchat");
     }
 
     // Freeze and Unfreeze

@@ -13,19 +13,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 import org.prismcore.Core;
 import org.prismcore.data.CoreData;
-import org.jetbrains.annotations.NotNull;
 import org.prismcore.messages.CoreMessages;
 
 import java.text.DecimalFormat;
-import java.time.LocalDateTime;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import static net.kyori.adventure.title.Title.Times.times;
 import static net.kyori.adventure.title.Title.title;
@@ -90,22 +91,14 @@ public class CoreCommands {
         sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.night));
     }
 
-    // Discord
+    // Discord, Store, Socials, Buy
 
-    @CommandMethod("discord")
-    @CommandDescription("Get the discord link")
-    @CommandPermission("prismcore.discord")
+    @CommandMethod("discord|store|socials|buy")
+    @CommandDescription("Get the social links")
+    @CommandPermission("prismcore.socials")
     public void discord(final @NotNull CommandSender sender) {
+        sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.website));
         sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.discord));
-    }
-
-    // Store
-
-    @ProxiedBy("buy")
-    @CommandMethod("store")
-    @CommandDescription("Get the store link")
-    @CommandPermission("prismcore.store")
-    public void store(final @NotNull CommandSender sender) {
         sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.store));
     }
 
@@ -441,7 +434,9 @@ public class CoreCommands {
             return;
         }
         player.teleport(p);
-        player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.teleported, Placeholder.parsed("target", player.getName()), Placeholder.parsed("destination", "you")));
+        player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.teleported,
+                Placeholder.parsed("target", player.getName()),
+                Placeholder.parsed("destination", "you")));
     }
 
     // Lag
@@ -520,7 +515,8 @@ public class CoreCommands {
     @CommandMethod("staffchat [message]")
     @CommandDescription("Talk to other staff")
     @CommandPermission("prismcore.staffchat")
-    public void staffchat(final @NotNull CommandSender sender, final @Greedy @Argument("message") String message) {
+    public void staffchat(final @NotNull CommandSender sender,
+                          final @Greedy @Argument("message") String message) {
         if (message == null) {
             if (CoreData.isStaffchatting((Player) sender)) {
                 CoreData.unstaffchat((Player) sender);
@@ -529,12 +525,9 @@ public class CoreCommands {
             }
             return;
         }
-        String staffchat = org.prismcore.Core.getConfigValue("messages.staff.prefix");
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.hasPermission("prismcore.staffchat")) {
-                p.sendMessage(MiniMessage.miniMessage().deserialize(staffchat + sender.getName() + ": <reset>" + message));
-            }
-        }
+        Core.getPlugin().getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.chatformat,
+                Placeholder.parsed("player", sender.getName()),
+                Placeholder.parsed("message", message)), "prismcore.staffchat");
     }
 
     // Ping
@@ -542,22 +535,24 @@ public class CoreCommands {
     @CommandMethod("ping [player]")
     @CommandDescription("Get your ping or another player's ping")
     @CommandPermission("prismcore.ping")
-    public void ping(final @NotNull CommandSender sender, final @Argument("player") Player player) {
-        if (player != null) {
-            if (sender.hasPermission("prismcore.ping.others")) {
-                String ping = org.prismcore.Core.getConfigValue("messages.ping");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(ping + " of " + player.getName() + ": " + player.getPing() + "ms"));
-            } else {
-                String noperms = org.prismcore.Core.getConfigValue("messages.noperms");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
-            }
-        } else {
-            if (sender instanceof Player p) {
-                String ping = org.prismcore.Core.getConfigValue("messages.ping");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(ping + ": " + p.getPing() + "ms"));
-            } else {
+    public void ping(final @NotNull CommandSender sender,
+                     final @Argument("player") Player player) {
+        if (player == null) {
+            if (!(sender instanceof Player p)) {
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                return;
             }
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ping,
+                    Placeholder.parsed("ping", String.valueOf(p.getPing())),
+                    Placeholder.parsed("player", p.getName())));
+        } else {
+            if (!sender.hasPermission("prismcore.ping.others")) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.nopermission));
+                return;
+            }
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ping,
+                    Placeholder.parsed("ping", String.valueOf(player.getPing())),
+                    Placeholder.parsed("player", player.getName())));
         }
     }
 
@@ -566,37 +561,41 @@ public class CoreCommands {
     @CommandMethod("speed <speed> [player]")
     @CommandDescription("Change yours or another player's flight/movement speed depending on if they are walking or flying")
     @CommandPermission("prismcore.speed")
-    public void speed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
-        if (player != null) {
-            if (sender.hasPermission("prismcore.speed.others")) {
-                float speedd = String.valueOf(speed).equals("1") ? 1.0f : this.getMoveSpeed(String.valueOf(speed));
-                if (player.isFlying()) {
-                    player.setFlySpeed(getRealMoveSpeed(speedd, true));
-                    String flyspeed = org.prismcore.Core.getConfigValue("messages.speed.fly");
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speedd));
-                } else {
-                    player.setWalkSpeed(getRealMoveSpeed(speedd, false));
-                    String walkspeed = org.prismcore.Core.getConfigValue("messages.speed.walk");
-                    player.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speedd));
-                }
+    public void speed(final @NotNull CommandSender sender,
+                      final @NotNull @Argument("speed") Float speed,
+                      final @Argument("player") Player player) {
+        float speedd = String.valueOf(speed).equals("1") ? 1.0f : this.getMoveSpeed(String.valueOf(speed));
+        if (player == null) {
+            if (!(sender instanceof Player p)) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                return;
+            }
+            if (p.isFlying()) {
+                p.setFlySpeed(getRealMoveSpeed(speedd, true));
+                p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                        Placeholder.parsed("speed", String.valueOf(speedd)),
+                        Placeholder.parsed("type", "Fly")));
             } else {
-                String noperms = org.prismcore.Core.getConfigValue("messages.noperms");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
+                p.setWalkSpeed(getRealMoveSpeed(speedd, false));
+                p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                        Placeholder.parsed("speed", String.valueOf(speedd)),
+                        Placeholder.parsed("type", "Walk")));
             }
         } else {
-            if (sender instanceof Player p) {
-                float speedd = String.valueOf(speed).equals("1") ? 1.0f : this.getMoveSpeed(String.valueOf(speed));
-                if (p.isFlying()) {
-                    p.setFlySpeed(getRealMoveSpeed(speedd, true));
-                    String flyspeed = org.prismcore.Core.getConfigValue("messages.speed.fly");
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speedd));
-                } else {
-                    p.setWalkSpeed(getRealMoveSpeed(speedd, false));
-                    String walkspeed = org.prismcore.Core.getConfigValue("messages.speed.walk");
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speedd));
-                }
+            if (!sender.hasPermission("prismcore.speed.others")) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.nopermission));
+                return;
+            }
+            if (player.isFlying()) {
+                player.setFlySpeed(getRealMoveSpeed(speedd, true));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                        Placeholder.parsed("speed", String.valueOf(speedd)),
+                        Placeholder.parsed("type", "Fly")));
             } else {
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                player.setWalkSpeed(getRealMoveSpeed(speedd, false));
+                player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                        Placeholder.parsed("speed", String.valueOf(speedd)),
+                        Placeholder.parsed("type", "Walk")));
             }
         }
     }
@@ -633,22 +632,23 @@ public class CoreCommands {
     @CommandPermission("prismcore.speed")
     public void walkspeed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
         if (player != null) {
-            if (sender.hasPermission("prismcore.speed.others")) {
-                player.setWalkSpeed(getRealMoveSpeed(speed, false));
-                String walkspeed = org.prismcore.Core.getConfigValue("messages.speed.walk");
-                player.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speed));
-            } else {
-                String noperms = org.prismcore.Core.getConfigValue("messages.noperms");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
+            if (!sender.hasPermission("prismcore.speed.others")) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.nopermission));
+                return;
             }
+            player.setWalkSpeed(getRealMoveSpeed(speed, false));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                    Placeholder.parsed("speed", String.valueOf(speed)),
+                    Placeholder.parsed("type", "Walk")));
         } else {
-            if (sender instanceof Player p) {
-                p.setWalkSpeed(getRealMoveSpeed(speed, false));
-                String walkspeed = org.prismcore.Core.getConfigValue("messages.speed.walk");
-                p.sendMessage(MiniMessage.miniMessage().deserialize(walkspeed + speed));
-            } else {
+            if (!(sender instanceof Player p)) {
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                return;
             }
+            p.setWalkSpeed(getRealMoveSpeed(speed, false));
+            p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                    Placeholder.parsed("speed", String.valueOf(speed)),
+                    Placeholder.parsed("type", "Walk")));
         }
     }
 
@@ -658,22 +658,23 @@ public class CoreCommands {
     @CommandPermission("prismcore.speed")
     public void flyspeed(final @NotNull CommandSender sender, final @NotNull @Argument("speed") Float speed, final @Argument("player") Player player) {
         if (player != null) {
-            if (sender.hasPermission("prismcore.speed.others")) {
-                player.setFlySpeed(getRealMoveSpeed(speed, true));
-                String flyspeed = org.prismcore.Core.getConfigValue("messages.speed.fly");
-                player.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speed));
-            } else {
-                String noperms = org.prismcore.Core.getConfigValue("messages.noperms");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
+            if (!sender.hasPermission("prismcore.speed.others")) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.nopermission));
+                return;
             }
+            player.setFlySpeed(getRealMoveSpeed(speed, true));
+            player.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                    Placeholder.parsed("speed", String.valueOf(speed)),
+                    Placeholder.parsed("type", "Fly")));
         } else {
-            if (sender instanceof Player p) {
-                p.setFlySpeed(getRealMoveSpeed(speed, true));
-                String flyspeed = org.prismcore.Core.getConfigValue("messages.speed.fly");
-                p.sendMessage(MiniMessage.miniMessage().deserialize(flyspeed + speed));
-            } else {
+            if (!(sender instanceof Player p)) {
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                return;
             }
+            p.setFlySpeed(getRealMoveSpeed(speed, true));
+            p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.speed,
+                    Placeholder.parsed("speed", String.valueOf(speed)),
+                    Placeholder.parsed("type", "Fly")));
         }
     }
 
@@ -685,95 +686,92 @@ public class CoreCommands {
     @CommandPermission("prismcore.vanish")
     public void vanish(final @NotNull CommandSender sender, final @Argument("player") Player player) {
         if (player != null) {
-            if (sender.hasPermission("prismcore.vanish.others")) {
-                if (CoreData.getVanishedPlayers().contains(player.getUniqueId())) {
-                    CoreData.unvanish(player);
-                } else {
-                    CoreData.vanish(player);
-                }
+            if (!sender.hasPermission("prismcore.vanish.others")) {
+                sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.nopermission));
+                return;
+            }
+            if (CoreData.getVanishedPlayers().contains(player.getUniqueId())) {
+                CoreData.unvanish(player);
             } else {
-                String noperms = org.prismcore.Core.getConfigValue("messages.noperms");
-                sender.sendMessage(MiniMessage.miniMessage().deserialize(noperms));
+                CoreData.vanish(player);
             }
         } else {
-            if (sender instanceof Player p) {
-                if (CoreData.getVanishedPlayers().contains(p.getUniqueId())) {
-                    CoreData.unvanish(p);
-                } else {
-                    CoreData.vanish(p);
-                }
-            } else {
+            if (!(sender instanceof Player p)) {
                 sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+                return;
+            }
+            if (CoreData.getVanishedPlayers().contains(p.getUniqueId())) {
+                CoreData.unvanish(p);
+            } else {
+                CoreData.vanish(p);
             }
         }
-
     }
 
     // Reboot
 
     @ProxiedBy("restart")
-    @CommandMethod("reboot <secondsOrCancel>")
-    @CommandDescription("Reboot the server")
+    @CommandMethod("reboot [cancel]")
+    @CommandDescription("Reboot the server with a 20 second delay")
     @CommandPermission("prismcore.reboot")
-    public void reboot(final @NotNull CommandSender sender, final @Argument("secondsOrCancel") String time) {
-        if (time.equalsIgnoreCase("cancel")) {
-            this.task.cancel();
-            this.task = null;
-        } else {
-            this.task.cancel();
-            this.task = null;
-            AtomicInteger countdown = new AtomicInteger(Integer.parseInt(time));
+    public void reboot(final @NotNull CommandSender sender, final @Argument("cancel") boolean cancel) {
+        this.task.cancel();
+        this.task = null;
+        Bukkit.getOnlinePlayers().forEach(p -> p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f));
+        if (!cancel) {
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.restarting,
+                    Placeholder.parsed("time", " in 20")));
+            AtomicInteger countdown = new AtomicInteger(20);
             this.task = new BukkitRunnable(){
                 public void run() {
-                    String restaring = Core.getConfigValue("messages.restarting");
                     int localInt = countdown.getAndDecrement();
+                    Title.Times times = times(Duration.ofMillis(100L),
+                            Duration.ofMillis(1200L),
+                            Duration.ofMillis(0L));
                     if (localInt <= 0) {
                         this.cancel();
                         for (Player p : Bukkit.getOnlinePlayers()) {
-                            @NotNull Duration fadeIn = Duration.ofMillis(500L);
-                            @NotNull Duration stay = Duration.ofMillis(2000L);
-                            @NotNull Duration fadeOut = Duration.ofMillis(500L);
-                            Title.Times times = times(fadeIn , stay, fadeOut);
-                            Title title = title(MiniMessage.miniMessage().deserialize(""), MiniMessage.miniMessage().deserialize(restaring), times);
+                            Title title = title(MiniMessage.miniMessage().deserialize(""),
+                                    MiniMessage.miniMessage().deserialize(CoreMessages.restarting), times);
                             p.showTitle(title);
-                            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
                         }
-                        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(restaring));
+                        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.restarting));
                         CoreCommands.this.task = null;
                         Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), "stop");
                         return;
                     }
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        @NotNull Duration fadeIn = Duration.ofMillis(500L);
-                        @NotNull Duration stay = Duration.ofMillis(2000L);
-                        @NotNull Duration fadeOut = Duration.ofMillis(500L);
-                        Title.Times times = times(fadeIn , stay, fadeOut);
-                        Title title = title(MiniMessage.miniMessage().deserialize(""), MiniMessage.miniMessage().deserialize(restaring + " in " + localInt), times);
+                        Title title = title(MiniMessage.miniMessage().deserialize(""),
+                                MiniMessage.miniMessage().deserialize(CoreMessages.restarting,
+                                        Placeholder.parsed("time", " in " + localInt)), times);
                         p.showTitle(title);
-                        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
                     }
-                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(restaring + " in " + localInt));
+                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.restarting,
+                            Placeholder.parsed("time", " in " + localInt)));
                 }
-            }.runTaskTimer(org.prismcore.Core.getPlugin(), 0L, 20L);
+            }.runTaskTimer(Core.getPlugin(), 40L, 20L);
         }
     }
 
-    // MuteChat
+    // MuteChat & ClearChat
 
     @ProxiedBy("unmutechat")
     @CommandMethod("mutechat")
     @CommandDescription("Un/Mute the chat")
     @CommandPermission("prismcore.mutechat")
     public void mutechat(final @NotNull CommandSender sender) {
-        if (org.prismcore.Core.muteChat) {
-            org.prismcore.Core.muteChat = false;
-            String unmuted = org.prismcore.Core.getConfigValue("messages.mutechat.unmuted");
-            sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(unmuted));
-        } else {
-            org.prismcore.Core.muteChat = true;
-            String muted = org.prismcore.Core.getConfigValue("messages.mutechat.muted");
-            sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(muted));
-        }
+        org.prismcore.Core.muteChat = !org.prismcore.Core.muteChat;
+        sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.chatstaffed,
+                Placeholder.parsed("state", org.prismcore.Core.muteChat ? "muted" : "unmuted")));
+    }
+
+    @CommandMethod("clearchat")
+    @CommandDescription("Clear the chat")
+    @CommandPermission("prismcore.clearchat")
+    public void clearchat(final @NotNull CommandSender sender) {
+        IntStream.range(0, 100).forEach(i -> sender.getServer().broadcast(MiniMessage.miniMessage().deserialize("")));
+        sender.getServer().broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.chatstaffed,
+                Placeholder.parsed("state", "cleared")));
     }
 
     // Ignore
@@ -783,28 +781,34 @@ public class CoreCommands {
     @CommandDescription("Ignore/Block a player from messaging you and reading their chat")
     @CommandPermission("prismcore.ignore")
     public void ignore(final @NotNull CommandSender sender, final @NotNull @Argument("action") String action, final @NotNull @Argument("player") Player player) {
-        if (sender instanceof Player p) {
-            if (action.equalsIgnoreCase("add")) {
-                if (CoreData.isIgnored(p, player)) {
-                    String alreadyignored = org.prismcore.Core.getConfigValue("messages.ignore.already");
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(alreadyignored + player.getName()));
-                } else {
-                    CoreData.ignore(p, player);
-                }
-            } else if (action.equalsIgnoreCase("remove")) {
-                if (!CoreData.isIgnored(p, player)) {
-                    String notignored = org.prismcore.Core.getConfigValue("messages.ignore.notignored");
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(notignored + player.getName()));
-                } else {
-                    CoreData.unignore(p, player);
-                }
-            } else {
-                String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-                p.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nUse /ignore <add/remove> <player>"));
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument));
+            return;
+        }
+        if (action.equalsIgnoreCase("add")) {
+            if (!CoreData.isIgnored(p, player)) {
+                CoreData.ignore(p, player);
+                p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ignored,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("un", "started ignoring")));
+                return;
             }
+            p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ignored,
+                Placeholder.parsed("player", player.getName() + "already"),
+                Placeholder.parsed("un", "ignored")));
+        } else if (action.equalsIgnoreCase("remove")) {
+            if (!CoreData.isIgnored(p, player)) {
+                p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ignored,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("state", "not ignored")));
+                return;
+            }
+            CoreData.unignore(p, player);
+            p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.ignored,
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("state", "stopped ignoring")));
         } else {
-            String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid));
+            p.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nUse /ignore <add/remove> <player>"));
         }
     }
 
@@ -818,33 +822,51 @@ public class CoreCommands {
     @CommandMethod("kick <player> <reason> [-s]")
     @CommandDescription("Kick a player with a reason")
     @CommandPermission("prismcore.kick")
-    public void kick(final @NotNull CommandSender sender, final @NotNull @Argument("player") Player player, final @Argument("-s") String s, final @NotNull @Greedy @Argument("reason") String reason) {
+    public void kick(final @NotNull CommandSender sender,
+                     final @NotNull @Argument("player") Player player,
+                     final @Argument("-s") String silent,
+                     final @NotNull @Greedy @Argument("reason") String reason) {
         if (sender instanceof Player) {
+            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.kick(MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("punishment", "kicked"),
+                    Placeholder.parsed("staff", sender.getName()),
+                    Placeholder.parsed("time", ""),
+                    Placeholder.parsed("reason", reason))));
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("punishment", "kicked"),
+                    Placeholder.parsed("staff", sender.getName()),
+                    Placeholder.parsed("time", ""),
+                    Placeholder.parsed("reason", reason)), "prismcore.staffchat");
             if (!reason.endsWith("-s")) {
-                String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "kicked"), Placeholder.parsed("reason", reason)));
-            }
-            String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.kick(MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName()), Placeholder.parsed("punishment", "kicked"))));
-            String staffkicked = org.prismcore.Core.getConfigValue("messages.staff.punished");
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (p.hasPermission("prismcore.staffchat")) {
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(staffkicked, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "kicked"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName())));
-                }
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "kicked"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("time", ""),
+                        Placeholder.parsed("reason", reason)));
             }
         } else {
+            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.kick(MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("punishment", "kicked"),
+                    Placeholder.parsed("staff", "CONSOLE"),
+                    Placeholder.parsed("time", ""),
+                    Placeholder.parsed("reason", reason))));
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("punishment", "kicked"),
+                    Placeholder.parsed("staff", "CONSOLE"),
+                    Placeholder.parsed("time", ""),
+                    Placeholder.parsed("reason", reason)), "prismcore.staffchat");
             if (!reason.endsWith("-s")) {
-                String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "kicked"), Placeholder.parsed("reason", reason)));
-            }
-            String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.kick(MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName()), Placeholder.parsed("punishment", "kicked"))));
-            String staffkicked = org.prismcore.Core.getConfigValue("messages.staff.punished");
-            Bukkit.getServer().broadcast()
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (p.hasPermission("prismcore.staffchat")) {
-                    p.sendMessage(MiniMessage.miniMessage().deserialize(staffkicked, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "kicked"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE")));
-                }
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "kicked"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("time", ""),
+                        Placeholder.parsed("reason", reason)));
             }
         }
     }
@@ -855,7 +877,6 @@ public class CoreCommands {
     private static final long HOUR_IN_MILLIS = 60 * MINUTE_IN_MILLIS;
     private static final long DAY_IN_MILLIS = 24 * HOUR_IN_MILLIS;
     private static final long YEAR_IN_MILLIS = 365 * DAY_IN_MILLIS;
-    private static final long PERM_IN_MILLIS = 10 * YEAR_IN_MILLIS;
     public Date getPunishDuration(String duration) {
         LocalDateTime dateTime = LocalDateTime.now();
         if (duration == null || duration.trim().isEmpty()) {
@@ -863,38 +884,47 @@ public class CoreCommands {
             return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
         }
         if (duration.equalsIgnoreCase("perm")) {
-            LocalDateTime ldt = dateTime.plus(PERM_IN_MILLIS, ChronoUnit.MILLIS);
+            LocalDateTime ldt = dateTime.plus(10 * YEAR_IN_MILLIS, ChronoUnit.MILLIS);
             return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
         }
         try {
             int time = Integer.parseInt(duration.substring(0, duration.length() - 1));
             String type = duration.substring(duration.length() - 1);
-            switch (type.toLowerCase()) {
-                case "s":
-                    LocalDateTime ldt = dateTime.plus(time, ChronoUnit.SECONDS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "m":
-                    ldt = dateTime.plus(time, ChronoUnit.MINUTES);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "h":
-                    ldt = dateTime.plus(time, ChronoUnit.HOURS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "d":
-                    ldt = dateTime.plus(time, ChronoUnit.DAYS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "w":
-                    ldt = dateTime.plus(time, ChronoUnit.WEEKS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "mon":
-                    ldt = dateTime.plus(time, ChronoUnit.MONTHS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                case "y":
-                    ldt = dateTime.plus(time, ChronoUnit.YEARS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-                default:
+            LocalDateTime ldt;
+            return switch (type.toLowerCase()) {
+                case "s" -> {
+                    ldt = dateTime.plusSeconds(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "m" -> {
+                    ldt = dateTime.plusMinutes(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "h" -> {
+                    ldt = dateTime.plusHours(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "d" -> {
+                    ldt = dateTime.plusDays(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "w" -> {
+                    ldt = dateTime.plusWeeks(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "mon" -> {
+                    ldt = dateTime.plusMonths(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                case "y" -> {
+                    ldt = dateTime.plusYears(time);
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+                default -> {
                     ldt = dateTime.plus(DAY_IN_MILLIS, ChronoUnit.MILLIS);
-                    return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-            }
+                    yield Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+                }
+            };
         } catch (NumberFormatException | IndexOutOfBoundsException e) {
             LocalDateTime ldt = dateTime.plus(DAY_IN_MILLIS, ChronoUnit.MILLIS);
             return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
@@ -907,74 +937,63 @@ public class CoreCommands {
     @CommandMethod("ban|tempban|tb <player> <duration> <reason> [-s]")
     @CommandDescription("Ban a player with a reason for a duration (perm for permanent)")
     @CommandPermission("prismcore.ban")
-    public void ban(final @NotNull CommandSender sender, final @NotNull @Argument("player") OfflinePlayer player, final @Argument("-s") String s, final @NotNull @Argument("duration") String duration, final @NotNull @Greedy @Argument("reason") String reason) {
+    public void ban(final @NotNull CommandSender sender,
+                    final @NotNull @Argument("player") OfflinePlayer player,
+                    final @NotNull @Argument("duration") String duration,
+                    final @Argument ("-s") String silent,
+                    final @NotNull @Greedy @Argument("reason") String reason) {
         try {
+            Component punishmsg;
             if (sender instanceof Player) {
-                if (!reason.endsWith("-s")) {
-                    String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason)));
-                }
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName()), Placeholder.parsed("punishment", "banned"));
-                player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName())));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "banned"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("reason", reason));
             } else {
-                String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason)));
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "banned"));
-                player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), "CONSOLE", true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE")));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "banned"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("reason", reason));
             }
+            if (!reason.endsWith("-s")) {
+                Bukkit.broadcast(punishmsg);
+            }
+            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true));
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
         } catch (NullPointerException e) {
-            String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nThat player has never played before!"));
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player has never played before!"));
         }
     }
 
     // Unban
 
     @ProxiedBy("ub")
-    @CommandMethod("unban <player> <reason> [-s]")
+    @CommandMethod("unban <player> <reason>")
     @CommandDescription("Unban a player with a reason")
     @CommandPermission("prismcore.unban")
-    public void unban(final @NotNull CommandSender sender, final @NotNull @Argument("player") OfflinePlayer player, final @Argument("-s") String s, final @NotNull @Greedy @Argument("reason") String reason) {
+    public void unban(final @NotNull CommandSender sender,
+                      final @NotNull @Argument("player") OfflinePlayer player,
+                      final @NotNull @Greedy @Argument("reason") String reason) {
         try {
             if (sender instanceof Player) {
-                if (!reason.endsWith("-s")) {
-                    String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "unbanned"), Placeholder.parsed("reason", reason)));
-                }
                 ((ProfileBanList) sender.getServer().getBanList(BanList.Type.PROFILE)).pardon(player.getPlayerProfile());
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "unbanned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName())));
-                    }
-                }
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "unbanned"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("reason", reason)), "prismcore.staffchat");
             } else {
-                String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "unbanned"), Placeholder.parsed("reason", reason)));
                 ((ProfileBanList) sender.getServer().getBanList(BanList.Type.PROFILE)).pardon(player.getPlayerProfile());
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat"))
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "unbanned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE")));
-                }
+                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "unbanned"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("reason", reason)), "prismcore.staffchat");
             }
         } catch (NullPointerException e) {
-            String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nThat player has never played before!"));
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player has never played before!"));
         }
     }
 
@@ -985,39 +1004,33 @@ public class CoreCommands {
     @CommandMethod("ipban|tempipban|banip|tempbanip|tbip <player> <duration> <reason> [-s]")
     @CommandDescription("Ban a player's IP with a reason for a duration (perm for permanent)")
     @CommandPermission("prismcore.ipban")
-    public void ipban(final @NotNull CommandSender sender, final @NotNull @Argument("player") OfflinePlayer player, final @Argument("-s") String s, final @NotNull @Argument("duration") String duration, final @NotNull @Greedy @Argument("reason") String reason) {
+    public void ipban(final @NotNull CommandSender sender,
+                      final @NotNull @Argument("player") Player player,
+                      final @NotNull @Argument("duration") String duration,
+                      final @Argument ("-s") String silent,
+                      final @NotNull @Greedy @Argument("reason") String reason) {
         try {
-            Player actualplayer = (Player) player;
+            Component punishmsg;
             if (sender instanceof Player) {
-                if (!reason.endsWith("-s")) {
-                    String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason)));
-                }
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName()), Placeholder.parsed("punishment", "banned"));
-                actualplayer.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName())));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("reason", reason));
             } else {
-                String punishalert = org.prismcore.Core.getConfigValue("messages.punishalert");
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason)));
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "banned"));
-                actualplayer.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), "CONSOLE", true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "banned"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE")));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("reason", reason));
             }
+            if (!reason.endsWith("-s")) {
+                Bukkit.broadcast(punishmsg);
+            }
+            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true));
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
         } catch (NullPointerException e) {
-            String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nThat player has never played before!"));
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
         }
     }
 
@@ -1027,35 +1040,31 @@ public class CoreCommands {
     @CommandMethod("blacklist <player> <reason>")
     @CommandDescription("Blacklist a player (Unappealable Permanent Ban)")
     @CommandPermission("prismcore.blacklist")
-    public void blacklist(final @NotNull CommandSender sender, final @NotNull @Argument("player") OfflinePlayer player, final @NotNull @Greedy @Argument("reason") String reason) {
+    public void blacklist(final @NotNull CommandSender sender,
+                          final @NotNull @Argument("player") OfflinePlayer player,
+                          final @NotNull @Greedy @Argument("reason") String reason) {
         try {
-            String punishalert = Core.getConfigValue("messages.punishalert");
+            Component punishmsg;
             if (sender instanceof Player) {
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", player.getName()), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"), Placeholder.parsed("reason", reason)));
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName()), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"));
-                player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), new Date(Long.MAX_VALUE), sender.getName(), true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", sender.getName())));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("staff", sender.getName()),
+                        Placeholder.parsed("reason", reason));
             } else {
-                Bukkit.broadcast(MiniMessage.miniMessage().deserialize(punishalert, Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"), Placeholder.parsed("reason", reason)));
-                String kick = org.prismcore.Core.getConfigValue("messages.kickmsg");
-                Component punishmsg = MiniMessage.miniMessage().deserialize(kick, Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE"), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"));
-                player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), new Date(Long.MAX_VALUE), "CONSOLE", true);
-                String staffbanned = org.prismcore.Core.getConfigValue("messages.staff.punished");
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("prismcore.staffchat")) {
-                        p.sendMessage(MiniMessage.miniMessage().deserialize(staffbanned, Placeholder.parsed("target", player.getName()), Placeholder.parsed("punishment", "<bold>blacklisted</bold>"), Placeholder.parsed("reason", reason), Placeholder.parsed("player", "CONSOLE")));
-                    }
-                }
+                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+                        Placeholder.parsed("player", player.getName()),
+                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("staff", "CONSOLE"),
+                        Placeholder.parsed("reason", reason));
             }
+            if (!reason.endsWith("-s")) {
+                Bukkit.broadcast(punishmsg);
+            }
+            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayer(MiniMessage.miniMessage().serialize(punishmsg), new Date(Long.MAX_VALUE), sender.getName(), true));
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
         } catch (NullPointerException e) {
-            String invalid = org.prismcore.Core.getConfigValue("messages.invalid");
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(invalid + "\nThat player has never played before!"));
+            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player has never played before!"));
         }
     }
 }
