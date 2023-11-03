@@ -1,4 +1,4 @@
-# <p align=center> Prismarine Core
+# <p align=center> Prismarine Core [WIP] [Abandoned]
 ### Todo:
 Dates are in the format of `DD/MM/YYYY`
 - [x] Core (General Commands and Chat formatting)
