@@ -1,4 +1,4 @@
-# <p align=center> Prismarine Core [WIP] [Abandoned]
+# <p align=center> Prismarine Core 1.16+
 ## Introduction
 I was bored at the time and I wanted to open my own (small) minecraft FFA/PvP server. 
 
@@ -12,8 +12,9 @@ You are free to modify and distribute and fork this project as the license says.
 
 The project uses the Cloud Command Framework for Paper and almost nothing.
 
-It's extremely configurable with simple to edit messages (check messages/CoreMessages.java)
+It's extremely configurable with simple to edit messages (check `messages/CoreMessages.java`)
 
+The code is not really documented as I was writing it to be private/only used internally.
 
 ### Todo:
 Dates are in the format of `DD/MM/YYYY`
