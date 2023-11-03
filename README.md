@@ -10,6 +10,10 @@ The plugin should support anything above 1.16.4 and it's only dependancy is Prot
 
 You are free to modify and distribute and fork this project as the license says.
 
+The project uses the Cloud Command Framework for Paper and almost nothing.
+
+It's extremely configurable with simple to edit messages (check messages/CoreMessages.java)
+
 
 ### Todo:
 Dates are in the format of `DD/MM/YYYY`
