@@ -1,4 +1,16 @@
 # <p align=center> Prismarine Core [WIP] [Abandoned]
+## Introduction
+I was bored at the time and I wanted to open my own (small) minecraft FFA/PvP server. 
+
+EssentialsX was way too overused and I wanted to have a little challenge so I wrote this, 
+
+a PaperMC Core/Essentials plugin with all the basic things like `/gamemode`, `/tp`, `/staffchat`, etc...
+
+The plugin should support anything above 1.16.4 and it's only dependancy is ProtocolLib
+
+You are free to modify and distribute and fork this project as the license says.
+
+
 ### Todo:
 Dates are in the format of `DD/MM/YYYY`
 - [x] Core (General Commands and Chat formatting)
