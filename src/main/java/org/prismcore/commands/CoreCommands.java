@@ -996,40 +996,40 @@ public class CoreCommands {
 
 
     // Tempban IP and Ban IP
-
-    @ProxiedBy("ipb")
-    @CommandMethod("ipban|tempipban|banip|tempbanip|tbip <player> <duration> <reason> [-s]")
-    @CommandDescription("Ban a player's IP with a reason for a duration (perm for permanent)")
-    @CommandPermission("prismcore.ipban")
-    public void ipban(final @NotNull CommandSender sender,
-                      final @NotNull @Argument("player") Player player,
-                      final @NotNull @Argument("duration") String duration,
-                      final @Argument ("-s") String silent,
-                      final @NotNull @Greedy @Argument("reason") String reason) {
-        try {
-            Component punishmsg;
-            if (sender instanceof Player) {
-                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
-                        Placeholder.parsed("player", player.getName()),
-                        Placeholder.parsed("punishment", "IP-banned"),
-                        Placeholder.parsed("staff", sender.getName()),
-                        Placeholder.parsed("reason", reason));
-            } else {
-                punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
-                        Placeholder.parsed("player", player.getName()),
-                        Placeholder.parsed("punishment", "IP-banned"),
-                        Placeholder.parsed("staff", "CONSOLE"),
-                        Placeholder.parsed("reason", reason));
-            }
-            if (!reason.endsWith("-s")) {
-                Bukkit.broadcast(punishmsg);
-            }
-            Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName(), true));
-            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
-        } catch (NullPointerException e) {
-            sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
-        }
-    }
+    // COMMENTED DUE TO UNABILITY TO UNIPBAN BY NAME
+    //@ProxiedBy("ipb")
+    //@CommandMethod("ipban|tempipban|banip|tempbanip|tbip <player> <duration> <reason> [-s]")
+    //@CommandDescription("Ban a player's IP with a reason for a duration (perm for permanent)")
+    //@CommandPermission("prismcore.ipban")
+    //public void ipban(final @NotNull CommandSender sender,
+    //                  final @NotNull @Argument("player") Player player,
+    //                  final @NotNull @Argument("duration") String duration,
+    //                  final @Argument ("-s") String silent,
+    //                  final @NotNull @Greedy @Argument("reason") String reason) {
+    //    try {
+    //        Component punishmsg;
+    //        if (sender instanceof Player) {
+    //            punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+    //                    Placeholder.parsed("player", player.getName()),
+    //                    Placeholder.parsed("punishment", "IP-banned"),
+    //                    Placeholder.parsed("staff", sender.getName()),
+    //                    Placeholder.parsed("reason", reason));
+    //        } else {
+    //            punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
+    //                    Placeholder.parsed("player", player.getName()),
+    //                    Placeholder.parsed("punishment", "IP-banned"),
+    //                    Placeholder.parsed("staff", "CONSOLE"),
+    //                    Placeholder.parsed("reason", reason));
+    //        }
+    //        if (!reason.endsWith("-s")) {
+    //            Bukkit.broadcast(punishmsg);
+    //        }
+    //        Bukkit.getScheduler().runTask(Core.getPlugin(), () -> player.banPlayerIP(MiniMessage.miniMessage().serialize(punishmsg), getPunishDuration(duration), sender.getName//(), true));
+    //        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(CoreMessages.staffprefix + punishmsg), "prismcore.staffchat");
+    //    } catch (NullPointerException e) {
+    //        sender.sendMessage(MiniMessage.miniMessage().deserialize(CoreMessages.invalidargument + "\nThat player is not online!"));
+    //    }
+    //}
 
     // Mute and Unmute
 
@@ -1104,13 +1104,13 @@ public class CoreCommands {
             if (sender instanceof Player) {
                 punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
                         Placeholder.parsed("player", player.getName()),
-                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("punishment", "Blacklisted"),
                         Placeholder.parsed("staff", sender.getName()),
                         Placeholder.parsed("reason", reason));
             } else {
                 punishmsg = MiniMessage.miniMessage().deserialize(CoreMessages.punishmsg,
                         Placeholder.parsed("player", player.getName()),
-                        Placeholder.parsed("punishment", "IP-banned"),
+                        Placeholder.parsed("punishment", "Blacklisted"),
                         Placeholder.parsed("staff", "CONSOLE"),
                         Placeholder.parsed("reason", reason));
             }
